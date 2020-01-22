@@ -1,12 +1,15 @@
-import { QAClient } from './qa';
 import { BertWordPieceTokenizer } from "tokenizers";
 import { mocked } from "ts-jest";
 
+import { QAClient } from "./qa";
+
 describe("QAClient", () => {
-  describe('fromOptions', () => {
+  describe("fromOptions", () => {
     it("should instantiate a QAClient with custom tokenizer when provided", async () => {
       const tokenizer = jest.fn();
-      const qaClient = await QAClient.fromOptions({ tokenizer: tokenizer as unknown as BertWordPieceTokenizer });
+      const qaClient = await QAClient.fromOptions({
+        tokenizer: (tokenizer as unknown) as BertWordPieceTokenizer
+      });
       expect((qaClient as any).tokenizer).toBe(tokenizer);
     });
   });
@@ -30,7 +33,7 @@ describe("QAClient", () => {
         `
       ];
 
-      const queries = ['Who won the Super Bowl?', 'Where was Chopin born?'];
+      const queries = ["Who won the Super Bowl?", "Where was Chopin born?"];
 
       const predOne = await qa.predict(queries[0], contexts[0]);
       console.log(predOne);

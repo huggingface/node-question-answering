@@ -16,12 +16,21 @@
   },
   "devDependencies": {
     "@types/jest": "^24.9.0",
+    "@typescript-eslint/eslint-plugin": "^2.17.0",
+    "@typescript-eslint/parser": "^2.17.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.9.0",
+    "eslint-plugin-jest": "^23.6.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-simple-import-sort": "^5.0.0",
     "jest": "^25.1.0",
+    "prettier": "^1.19.1",
     "ts-jest": "^24.3.0",
     "typescript": "^3.7.5"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint --fix --ext .js,.ts src scripts"
   },
   "author": "Pierric Cistac <pierric@huggingface.co>",
   "license": "Apache-2.0"
