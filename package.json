@@ -6,6 +6,12 @@
   "types": "./dist/index.d.ts",
   "dependencies": {
     "@tensorflow/tfjs-node": "^1.5.1",
+    "@types/node": "^13.1.8",
+    "@types/progress": "^2.0.3",
+    "@types/tar": "^4.0.3",
+    "progress": "^2.0.3",
+    "shelljs": "^0.8.3",
+    "tar": "^5.0.5",
     "tokenizers": "^0.2.4"
   },
   "devDependencies": {
