@@ -1,0 +1,14 @@
+{
+  "name": "node-transformers",
+  "version": "0.1.0",
+  "description": "Transformers using NodeJS",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@tensorflow/tfjs-node": "^1.5.1",
+    "tokenizers": "^0.2.4"
+  },
+  "devDependencies": {},
+  "author": "Pierric Cistac <pierric@huggingface.co>",
+  "license": "Apache-2.0"
+}
