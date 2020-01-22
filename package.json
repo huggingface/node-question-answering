@@ -8,7 +8,15 @@
     "@tensorflow/tfjs-node": "^1.5.1",
     "tokenizers": "^0.2.4"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/jest": "^24.9.0",
+    "jest": "^25.1.0",
+    "ts-jest": "^24.3.0",
+    "typescript": "^3.7.5"
+  },
+  "scripts": {
+    "test": "jest"
+  },
   "author": "Pierric Cistac <pierric@huggingface.co>",
   "license": "Apache-2.0"
 }
