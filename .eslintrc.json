@@ -20,7 +20,8 @@
   "plugins": ["@typescript-eslint", "jest", "prettier", "simple-import-sort"],
   "rules": {
     "prettier/prettier": "warn",
-    "simple-import-sort/sort": "warn"
+    "simple-import-sort/sort": "warn",
+    "@typescript-eslint/no-use-before-define": ["error", { "functions": false }]
     // "sort-imports": "warn",
   },
   "overrides": [

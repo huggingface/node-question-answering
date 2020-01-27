@@ -14,6 +14,11 @@ export interface QAOptions {
   vocabPath?: string;
 }
 
+export interface Answer {
+  score: number;
+  text: string;
+}
+
 export class QAClient {
   private constructor(
     private model: TFSavedModel,
@@ -31,7 +36,7 @@ export class QAClient {
     return new QAClient(model, tokenizer);
   }
 
-  async predict(question: string, context: string): Promise<string | null> {
+  async predict(question: string, context: string): Promise<Answer | null> {
     const sequenceLength = 384;
 
     const encoding = await this.tokenizer.encode(question, context);
@@ -45,6 +50,7 @@ export class QAClient {
     );
 
     const result = this.model.predict(
+      // eslint-disable-next-line @typescript-eslint/camelcase
       { input_ids: inputTensor, attention_mask: maskTensor },
       { verbose: true }
     ) as NamedTensorMap;
@@ -52,42 +58,48 @@ export class QAClient {
     const startLogits = (await result["output_0"].squeeze().array()) as number[];
     const endLogits = (await result["output_1"].squeeze().array()) as number[];
 
+    const startProbs = softMax(startLogits);
+    const endProbs = softMax(endLogits);
+
     const typeIds = encoding.getTypeIds();
     const contextFirstIndex = typeIds.findIndex(x => x === 1);
     const contextLastIndex =
       typeIds.findIndex((x, i) => i > contextFirstIndex && x === 0) - 1;
-    const [sortedStartLogits, sortedEndLogits] = [startLogits, endLogits].map(logits =>
+
+    const [sortedStartProbs, sortedEndProbs] = [startProbs, endProbs].map(logits =>
       logits
         .slice(contextFirstIndex, contextLastIndex)
         .map((val, i) => [i + contextFirstIndex, val])
         .sort((a, b) => b[1] - a[1])
     );
 
-    const answerIndexes: { start?: number; end?: number } = {};
-    for (const startLogit of sortedStartLogits) {
-      for (const endLogit of sortedEndLogits) {
+    for (const startLogit of sortedStartProbs) {
+      for (const endLogit of sortedEndProbs) {
         if (endLogit[0] < startLogit[0]) {
           continue;
         }
 
-        answerIndexes.start = startLogit[0];
-        answerIndexes.end = endLogit[0];
-        break;
-      }
+        const text: string[] = [];
+        const tokens = encoding.getTokens();
+        for (let i = startLogit[0]; i <= endLogit[0]; i++) {
+          text.push(tokens[i]);
+        }
 
-      if (answerIndexes.start != undefined && answerIndexes.end != undefined) {
-        break;
-      }
-    }
-
-    const answerText: string[] = [];
-    const tokens = encoding.getTokens();
-    if (answerIndexes.start != undefined && answerIndexes.end != undefined) {
-      for (let i = answerIndexes.start; i <= answerIndexes.end; i++) {
-        answerText.push(tokens[i]);
+        const rawScore = startLogit[1] * endLogit[1];
+        return {
+          text: text.join(" "),
+          score: Math.round((rawScore + Number.EPSILON) * 100) / 100
+        };
       }
     }
 
-    return answerText.length ? answerText.join(" ") : null;
+    return null;
   }
+}
+
+function softMax(values: number[]): number[] {
+  const max = Math.max(...values);
+  const exps = values.map(x => Math.exp(x - max));
+  const expsSum = exps.reduce((a, b) => a + b);
+  return exps.map(e => e / expsSum);
 }
