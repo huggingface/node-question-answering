@@ -102,7 +102,11 @@ export class QAClient {
     return new QAClient(model, modelParams, tokenizer);
   }
 
-  async predict(question: string, context: string): Promise<Answer | null> {
+  async predict(
+    question: string,
+    context: string,
+    maxAnswerLength = 15
+  ): Promise<Answer | null> {
     const encoding = await this.tokenizer.encode(question, context);
     encoding.pad(this.modelParams.shape[1]);
 
@@ -143,6 +147,10 @@ export class QAClient {
     for (const startLogit of sortedStartProbs) {
       for (const endLogit of sortedEndProbs) {
         if (endLogit[0] < startLogit[0]) {
+          continue;
+        }
+
+        if (endLogit[0] - startLogit[0] + 1 > maxAnswerLength) {
           continue;
         }
 
