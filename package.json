@@ -1,8 +1,20 @@
 {
   "name": "question-answering",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Question Answering in NodeJS using DistilBERT and TensorFlow.js",
-  "keywords": ["nlp", "question answering", "tensorflow"],
+  "keywords": [
+    "nlp",
+    "question answering",
+    "tensorflow",
+    "distilbert"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huggingface/node-question-answering.git"
+  },
+  "bugs": {
+    "url": "https://github.com/huggingface/node-question-answering/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "dependencies": {
@@ -13,7 +25,7 @@
     "progress": "^2.0.3",
     "shelljs": "^0.8.3",
     "tar": "^5.0.5",
-    "tokenizers": "^0.3.1"
+    "tokenizers": "^0.4.0"
   },
   "devDependencies": {
     "@types/jest": "^24.9.1",
