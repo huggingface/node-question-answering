@@ -1,5 +1,7 @@
 # Question Answering for Node.js
 
+[![npm version](https://badge.fury.io/js/question-answering.svg)](https://badge.fury.io/js/question-answering)
+
 Run question answering locally, directly in Node.js: no Python or C++ code needed!
 
 ## Installation
