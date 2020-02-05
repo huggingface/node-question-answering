@@ -1,6 +1,6 @@
 # Question Answering for Node.js
 
-Run question answering directly in Node.js: no Python or C++ code needed!
+Run question answering locally, directly in Node.js: no Python or C++ code needed!
 
 ## Installation
 
@@ -29,7 +29,7 @@ console.log(answer); // { text: 'Denver Broncos', score: 0.37 }
 
 ## Details
 
-This package makes use of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then runs the [DistilBERT](https://arxiv.org/abs/1910.01108) model (97% of BERT’s performance on GLUE) fine-tuned for Question Answering thanks to [TensorFlow.js](https://www.tensorflow.org/js).
+This package makes use of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then runs the [DistilBERT](https://arxiv.org/abs/1910.01108) model (97% of BERT’s performance on GLUE) fine-tuned for Question Answering thanks to [TensorFlow.js](https://www.tensorflow.org/js). The default model and the vocabulary are automatically downloaded when installing the package and everything runs locally.
 
 You can provide your own options when instantating a `QAClient`:
 
