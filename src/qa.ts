@@ -77,7 +77,7 @@ interface Feature {
   contextLength: number;
   contextStartIndex: number;
   encoding: Encoding;
-  maxContextMap: Map<number, boolean>;
+  maxContextMap: ReadonlyMap<number, boolean>;
 }
 
 interface Answer {
