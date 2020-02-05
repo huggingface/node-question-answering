@@ -22,7 +22,9 @@ shell.cd(rootDirectory);
 
 const arg = process.argv.slice(2)[0];
 
-run(arg);
+run(arg)
+  // Prevent "unhandledRejection" events, allowing to actually exit with error
+  .catch(() => process.exit(1));
 
 /**************************************/
 
