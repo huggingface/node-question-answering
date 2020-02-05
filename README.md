@@ -36,11 +36,6 @@ You can provide your own options when instantating a `QAClient`:
 ```typescript
 const qaClient = QAClient.fromOptions({
   // model?: ModelOptions;
-  /**
-   * Must match with the model input shape
-   * @default 384
-   */
-  // maxSequenceLength?: number;
   // tokenizer?: BertWordPieceTokenizer;
   vocabPath: "../myVocab.txt"
 });

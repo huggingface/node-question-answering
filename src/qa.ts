@@ -24,11 +24,6 @@ const DEFAULT_MODEL: ModelParams = {
 
 export interface QAOptions {
   model?: ModelOptions;
-  /**
-   * Must match with the model input shape
-   * @default 384
-   */
-  maxSequenceLength?: number;
   tokenizer?: BertWordPieceTokenizer;
   vocabPath?: string;
 }
