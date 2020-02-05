@@ -2,7 +2,7 @@ import * as tf from "@tensorflow/tfjs-node";
 import { NamedTensorMap } from "@tensorflow/tfjs-node";
 import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
 import path from "path";
-import { BertWordPieceTokenizer } from "tokenizers";
+import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
 
 const ASSETS_PATH = path.join(__dirname, "../assets");
 const MODEL_PATH = path.join(ASSETS_PATH, "distilbert");
@@ -18,7 +18,7 @@ const DEFAULT_MODEL: ModelParams = {
     startLogits: "output_0"
   },
   path: MODEL_PATH,
-  shape: [1, 384],
+  shape: [-1, 384],
   signatureName: "serving_default"
 };
 
@@ -71,6 +71,20 @@ interface ModelParams extends Required<ModelOptions> {
   shape: [number, number];
 }
 
+interface Span {
+  contextLength: number;
+  contextStartIndex: number;
+  length: number;
+  startIndex: number;
+}
+
+interface Feature {
+  contextLength: number;
+  contextStartIndex: number;
+  encoding: Encoding;
+  maxContextMap: Map<number, boolean>;
+}
+
 interface Answer {
   score: number;
   text: string;
@@ -88,7 +102,7 @@ export class QAClient {
     if (!options?.model) {
       modelParams = DEFAULT_MODEL;
     } else {
-      const modelGraph = await tf.node.getMetaGraphsFromSavedModel(MODEL_PATH);
+      const modelGraph = await tf.node.getMetaGraphsFromSavedModel(options.model.path);
       modelParams = this.getModelParams(options.model, modelGraph[0]);
     }
 
@@ -107,13 +121,17 @@ export class QAClient {
     context: string,
     maxAnswerLength = 15
   ): Promise<Answer | null> {
-    const encoding = await this.tokenizer.encode(question, context);
-    encoding.pad(this.modelParams.shape[1]);
+    const features = await this.getFeatures(question, context);
 
-    const inputTensor = tf.tensor(encoding.getIds(), this.modelParams.shape, "int32");
+    const inputTensor = tf.tensor(
+      features.map(f => f.encoding.getIds()),
+      undefined,
+      "int32"
+    );
+
     const maskTensor = tf.tensor(
-      encoding.getAttentionMask(),
-      this.modelParams.shape,
+      features.map(f => f.encoding.getAttentionMask()),
+      undefined,
       "int32"
     );
 
@@ -122,53 +140,137 @@ export class QAClient {
       [this.modelParams.inputsNames.attentionMask]: maskTensor
     }) as NamedTensorMap;
 
-    const startLogits = (await result[this.modelParams.outputsNames.startLogits]
+    let startLogits = (await result[this.modelParams.outputsNames.startLogits]
       .squeeze()
-      .array()) as number[];
-    const endLogits = (await result[this.modelParams.outputsNames.endLogits]
+      .array()) as number[] | number[][];
+    let endLogits = (await result[this.modelParams.outputsNames.endLogits]
       .squeeze()
-      .array()) as number[];
+      .array()) as number[] | number[][];
 
-    const startProbs = softMax(startLogits);
-    const endProbs = softMax(endLogits);
-
-    const typeIds = encoding.getTypeIds();
-    const contextFirstIndex = typeIds.findIndex(x => x === 1);
-    const contextLastIndex =
-      typeIds.findIndex((x, i) => i > contextFirstIndex && x === 0) - 1;
-
-    const [sortedStartProbs, sortedEndProbs] = [startProbs, endProbs].map(logits =>
-      logits
-        .slice(contextFirstIndex, contextLastIndex)
-        .map((val, i) => [i + contextFirstIndex, val])
-        .sort((a, b) => b[1] - a[1])
-    );
-
-    for (const startLogit of sortedStartProbs) {
-      for (const endLogit of sortedEndProbs) {
-        if (endLogit[0] < startLogit[0]) {
-          continue;
-        }
-
-        if (endLogit[0] - startLogit[0] + 1 > maxAnswerLength) {
-          continue;
-        }
-
-        const text: string[] = [];
-        const tokens = encoding.getTokens();
-        for (let i = startLogit[0]; i <= endLogit[0]; i++) {
-          text.push(tokens[i]);
-        }
-
-        const rawScore = startLogit[1] * endLogit[1];
-        return {
-          text: text.join(" "),
-          score: Math.round((rawScore + Number.EPSILON) * 100) / 100
-        };
-      }
+    if (isOneDimensional(startLogits)) {
+      startLogits = [startLogits];
     }
 
-    return null;
+    if (isOneDimensional(endLogits)) {
+      endLogits = [endLogits];
+    }
+
+    return this.getAnswer(features, startLogits, endLogits, maxAnswerLength);
+  }
+
+  private async getFeatures(
+    question: string,
+    context: string,
+    stride = 128
+  ): Promise<Feature[]> {
+    this.tokenizer.setPadding({ maxLength: this.modelParams.shape[1] });
+    this.tokenizer.setTruncation(this.modelParams.shape[1], {
+      strategy: TruncationStrategy.OnlySecond,
+      stride
+    });
+
+    const encoding = await this.tokenizer.encode(question, context);
+    const encodings = [encoding, ...encoding.getOverflowing()];
+
+    const questionLength =
+      encoding.getTokens().indexOf(this.tokenizer.configuration.sepToken) - 1; // Take [CLS] into account
+    const questionLengthWithTokens = questionLength + 2;
+
+    const spans: Span[] = encodings.map((e, i) => {
+      const specialTokensMask = e.getSpecialTokensMask();
+      const nbAddedTokens = specialTokensMask.reduce((acc, val) => acc + val, 0);
+      const actualLength = specialTokensMask.length - nbAddedTokens;
+
+      return {
+        startIndex: i * stride,
+        contextStartIndex: questionLengthWithTokens,
+        contextLength: actualLength - questionLength,
+        length: actualLength
+      };
+    });
+
+    return spans.map<Feature>((s, i) => {
+      const maxContextMap = getMaxContextMap(spans, i, stride, questionLengthWithTokens);
+
+      return {
+        contextLength: s.contextLength,
+        contextStartIndex: s.contextStartIndex,
+        encoding: encodings[i],
+        maxContextMap: maxContextMap
+      };
+    });
+  }
+
+  private getAnswer(
+    features: Feature[],
+    startLogits: number[][],
+    endLogits: number[][],
+    maxAnswerLength: number
+  ): Answer | null {
+    const answers: {
+      feature: Feature;
+      score: number;
+      startIndex: number;
+      endIndex: number;
+    }[] = [];
+
+    for (let i = 0; i < features.length; i++) {
+      const feature = features[i];
+      const starts = startLogits[i];
+      const ends = endLogits[i];
+
+      const startProbs = softMax(starts);
+      const endProbs = softMax(ends);
+
+      const contextLastIndex = feature.contextStartIndex + feature.contextLength - 1;
+      const [sortedStartProbs, sortedEndProbs] = [startProbs, endProbs].map(logits =>
+        logits
+          .slice(feature.contextStartIndex, contextLastIndex)
+          .map<[number, number]>((val, i) => [i + feature.contextStartIndex, val])
+          .sort((a, b) => b[1] - a[1])
+      );
+
+      sortedStartProbs.some(startLogit => {
+        return sortedEndProbs.some(endLogit => {
+          if (endLogit[0] < startLogit[0]) {
+            return;
+          }
+
+          if (endLogit[0] - startLogit[0] + 1 > maxAnswerLength) {
+            return;
+          }
+
+          if (!feature.maxContextMap.get(startLogit[0])) {
+            return;
+          }
+
+          answers.push({
+            feature,
+            startIndex: startLogit[0],
+            endIndex: endLogit[0],
+            score: startLogit[1] * endLogit[1]
+          });
+
+          return true;
+        });
+      });
+    }
+
+    if (!answers.length) {
+      return null;
+    }
+
+    const answer = answers.sort((a, b) => b.score - a.score)[0];
+    const offsets = answer.feature.encoding.getOffsets();
+    const answerText = features[0].encoding.getOriginalString(
+      offsets[answer.startIndex][0],
+      offsets[answer.endIndex][1]
+    );
+
+    return {
+      text: answerText,
+      score: Math.round((answer.score + Number.EPSILON) * 100) / 100
+    };
   }
 
   private static getModelParams(
@@ -216,9 +318,50 @@ export class QAClient {
   }
 }
 
+function getMaxContextMap(
+  spans: Span[],
+  spanIndex: number,
+  stride: number,
+  questionLengthWithTokens: number
+): Map<number, boolean> {
+  const map = new Map<number, boolean>();
+  const spanLength = spans[spanIndex].length;
+
+  let i = 0;
+  while (i < spanLength) {
+    const position = spanIndex * stride + i;
+    let bestScore = -1;
+    let bestIndex = -1;
+
+    for (const [ispan, span] of spans.entries()) {
+      const spanEndIndex = span.startIndex + span.length - 1;
+      if (position < span.startIndex || position > spanEndIndex) {
+        continue;
+      }
+
+      const leftContext = position - span.startIndex;
+      const rightContext = spanEndIndex - position;
+      const score = Math.min(leftContext, rightContext) + 0.01 * span.length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = ispan;
+      }
+    }
+
+    map.set(questionLengthWithTokens + i, bestIndex === spanIndex);
+    i++;
+  }
+
+  return map;
+}
+
 function softMax(values: number[]): number[] {
   const max = Math.max(...values);
   const exps = values.map(x => Math.exp(x - max));
   const expsSum = exps.reduce((a, b) => a + b);
   return exps.map(e => e / expsSum);
+}
+
+function isOneDimensional(arr: number[] | number[][]): arr is number[] {
+  return !Array.isArray(arr[0]);
 }
