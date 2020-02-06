@@ -23,8 +23,8 @@ const text = `
 
 const question = "Who won the Super Bowl?";
 
-const qaClient = async QAClient.fromOptions();
-const answer = async qaClient.predict(question, text);
+const qaClient = await QAClient.fromOptions();
+const answer = await qaClient.predict(question, text);
 
 console.log(answer); // { text: 'Denver Broncos', score: 0.37 }
 ```
@@ -36,7 +36,7 @@ This package makes use of the [tokenizers](https://github.com/huggingface/tokeni
 You can provide your own options when instantating a `QAClient`:
 
 ```typescript
-const qaClient = async QAClient.fromOptions({
+const qaClient = await QAClient.fromOptions({
   // model?: ModelOptions;
   // tokenizer?: BertWordPieceTokenizer;
   vocabPath: "../myVocab.txt"
