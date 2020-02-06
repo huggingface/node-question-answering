@@ -207,6 +207,8 @@ export class QAClient {
       score: number;
       startIndex: number;
       endIndex: number;
+      startLogits: number[];
+      endLogits: number[];
     }[] = [];
 
     for (let i = 0; i < features.length; i++) {
@@ -214,19 +216,16 @@ export class QAClient {
       const starts = startLogits[i];
       const ends = endLogits[i];
 
-      const startProbs = softMax(starts);
-      const endProbs = softMax(ends);
-
       const contextLastIndex = feature.contextStartIndex + feature.contextLength - 1;
-      const [sortedStartProbs, sortedEndProbs] = [startProbs, endProbs].map(logits =>
+      const [sortedStartLogits, sortedEndLogits] = [starts, ends].map(logits =>
         logits
           .slice(feature.contextStartIndex, contextLastIndex)
           .map<[number, number]>((val, i) => [i + feature.contextStartIndex, val])
           .sort((a, b) => b[1] - a[1])
       );
 
-      sortedStartProbs.some(startLogit => {
-        return sortedEndProbs.some(endLogit => {
+      sortedStartLogits.some(startLogit => {
+        return sortedEndLogits.some(endLogit => {
           if (endLogit[0] < startLogit[0]) {
             return;
           }
@@ -243,7 +242,9 @@ export class QAClient {
             feature,
             startIndex: startLogit[0],
             endIndex: endLogit[0],
-            score: startLogit[1] * endLogit[1]
+            score: startLogit[1] * endLogit[1],
+            startLogits: starts,
+            endLogits: ends
           });
 
           return true;
@@ -262,9 +263,13 @@ export class QAClient {
       offsets[answer.endIndex][1]
     );
 
+    const startProbs = softMax(answer.startLogits);
+    const endProbs = softMax(answer.endLogits);
+    const probScore = startProbs[answer.startIndex] * endProbs[answer.endIndex];
+
     return {
       text: answerText,
-      score: Math.round((answer.score + Number.EPSILON) * 100) / 100
+      score: Math.round((probScore + Number.EPSILON) * 100) / 100
     };
   }
 

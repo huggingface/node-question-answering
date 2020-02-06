@@ -18,7 +18,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "dependencies": {
-    "@tensorflow/tfjs-node": "^1.5.1",
+    "@tensorflow/tfjs-node": "^1.5.2",
     "@types/node": "^13.5.0",
     "@types/progress": "^2.0.3",
     "@types/tar": "^4.0.3",
