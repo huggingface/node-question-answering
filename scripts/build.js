@@ -58,7 +58,7 @@ async function downloadModel() {
 
     await new Promise((resolve, reject) => {
       https.get(
-        "https://s3.amazonaws.com/models.huggingface.co/bert/distilbert-base-uncased-distilled-squad-384-saved_model.tar.gz",
+        "https://cdn.huggingface.co/distilbert-base-uncased-distilled-squad-384-saved_model.tar.gz",
         res => {
           const bar = new ProgressBar("[:bar] :percent :etas", {
             width: 30,
