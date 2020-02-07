@@ -17,15 +17,18 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": "./scripts/cli.js",
   "dependencies": {
     "@tensorflow/tfjs-node": "^1.5.2",
     "@types/node": "^13.5.0",
     "@types/progress": "^2.0.3",
     "@types/tar": "^4.0.3",
+    "@types/yargs": "^15.0.3",
     "progress": "^2.0.3",
     "shelljs": "^0.8.3",
     "tar": "^5.0.5",
-    "tokenizers": "^0.4.0"
+    "tokenizers": "^0.4.0",
+    "yargs": "^15.1.0"
   },
   "devDependencies": {
     "@types/jest": "^24.9.1",

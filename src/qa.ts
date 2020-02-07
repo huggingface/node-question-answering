@@ -4,9 +4,9 @@ import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
 import path from "path";
 import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
 
-const ASSETS_PATH = path.join(__dirname, "../assets");
-const MODEL_PATH = path.join(ASSETS_PATH, "distilbert");
-const VOCAB_PATH = path.join(ASSETS_PATH, "vocab.txt");
+const ASSETS_PATH = path.join(process.cwd(), "./.models");
+const MODEL_PATH = path.join(ASSETS_PATH, "distilbert-uncased");
+const VOCAB_PATH = path.join(MODEL_PATH, "vocab.txt");
 
 const DEFAULT_MODEL: ModelParams = {
   inputsNames: {
