@@ -64,15 +64,6 @@ async function npmPublish() {
     buildPath
   );
 
-  // Add a NPM install script to the package.json that we push to NPM so that when consumers pull it down it
-  // runs the expected node-pre-gyp step.
-  const npmPackageJson = require(`${rootDirectory}/${buildPath}/package.json`);
-  npmPackageJson.scripts.postinstall = "node scripts/build.js --download-model";
-  await fs.promises.writeFile(
-    `${buildPath}/package.json`,
-    JSON.stringify(npmPackageJson, null, 2)
-  );
-
   // shell.exec(`npm pack ${buildPath}`);
   shell.exec(`npm publish ${buildPath} --access public`);
 
