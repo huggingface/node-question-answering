@@ -10,14 +10,14 @@ const yargs = require("yargs");
 const utils = require("./utils");
 
 const MODELS_PARAMS = {
-  cased: {
+  "distilbert-cased": {
     subDir: "distilbert-cased",
     modelUrl:
       "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-saved_model.tar.gz",
     vocabUrl:
       "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-cased-vocab.txt"
   },
-  uncased: {
+  "distilbert-uncased": {
     subDir: "distilbert-uncased",
     modelUrl:
       "https://cdn.huggingface.co/distilbert-base-uncased-distilled-squad-384-saved_model.tar.gz",
@@ -39,8 +39,8 @@ yargs
     yargs => {
       yargs
         .positional("model", {
-          default: "cased",
-          choices: ["cased", "uncased"],
+          default: "distilbert-cased",
+          choices: ["distilbert-cased", "distilbert-uncased"],
           type: "string"
         })
         .option("dir", {

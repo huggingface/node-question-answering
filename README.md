@@ -6,9 +6,17 @@ Run question answering locally, directly in Node.js: no Python or C++ code neede
 
 ## Installation
 
+First download the package:
 ```bash
 npm install question-answering
 ```
+
+Then you need to download the model and vocabulary file that will be used:
+```bash
+npx question-answering download
+```
+
+By default, the model and vocabulary are downloaded inside a `.models` directory at the root of your project; you can provide a custom directory by using the `--dir` option of the CLI.
 
 ## Simple example
 
@@ -31,17 +39,32 @@ console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 
 ## Details
 
-This package makes use of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then runs the [DistilBERT](https://arxiv.org/abs/1910.01108) model fine-tuned for Question Answering (86.9 F1 score on SQuAD v1.1 dev set, compared to 88.5 for BERT-base) thanks to [TensorFlow.js](https://www.tensorflow.org/js). The default model and the vocabulary are automatically downloaded when installing the package and everything runs locally.
+This package makes use of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then runs the [DistilBERT](https://arxiv.org/abs/1910.01108) cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased) thanks to [TensorFlow.js](https://www.tensorflow.org/js).
 
-You can provide your own options when instantating a `QAClient`:
+### Using a different model
 
+You can choose to use the uncased version of DistilBERT instead.
+
+First download the uncased model:
+```bash
+npx question-answering download distilbert-uncased
+```
+
+You can then instantiate a `QAClient` by specifying some options:
 ```typescript
 const qaClient = await QAClient.fromOptions({
-  // model?: ModelOptions;
-  // tokenizer?: BertWordPieceTokenizer;
-  vocabPath: "../myVocab.txt"
+  model: { path: "./.models/distilbert-uncased", cased: false },
+  vocabPath: "./.models/distilbert-uncased/vocab.txt"
 });
 ```
+
+You can also choose to use a custom model and pass it to `QAClient.fromOptions`, the same way than for DistilBERT-uncased. Check the [`QAOptions`](src/qa-options.ts) interface for the complete list of options.
+
+### Using a custom tokenizer
+
+You can provide your own tokenizer instance to `QAClient.fromOptions`, as long as it implements the [`BERTWordPieceTokenizer`](https://github.com/huggingface/tokenizers/blob/master/bindings/node/lib/tokenizers/bert-wordpiece.tokenizer.ts) methods.
+
+### Performances
 
 Thanks to [the native execution of SavedModel format](https://groups.google.com/a/tensorflow.org/d/msg/tfjs/Xtf6s1Bpkr0/7-Eqn8soAwAJ) in TFJS, the performance is similar to the one using TensorFlow in Python:
 
