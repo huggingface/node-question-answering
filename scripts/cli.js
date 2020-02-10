@@ -10,6 +10,13 @@ const yargs = require("yargs");
 const utils = require("./utils");
 
 const MODELS_PARAMS = {
+  cased: {
+    subDir: "distilbert-cased",
+    modelUrl:
+      "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-saved_model.tar.gz",
+    vocabUrl:
+      "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-cased-vocab.txt"
+  },
   uncased: {
     subDir: "distilbert-uncased",
     modelUrl:
@@ -32,7 +39,7 @@ yargs
     yargs => {
       yargs
         .positional("model", {
-          default: "uncased",
+          default: "cased",
           choices: ["cased", "uncased"],
           type: "string"
         })
@@ -42,6 +49,12 @@ yargs
           description: "The target directory to which download the model",
           requiresArg: true,
           normalize: true
+        })
+        .option("force", {
+          type: "boolean",
+          alias: "f",
+          description:
+            "Force download of model and vocab, erasing existing if already present"
         });
     },
     downloadModel
@@ -51,7 +64,7 @@ yargs
 
 /**
  * Download a model with associated vocabulary
- * @param {yargs.Arguments<{ model: "cased" | "uncased", dir: string }>} args
+ * @param {yargs.Arguments<{ model: "cased" | "uncased", dir: string, force?: boolean }>} args
  */
 async function downloadModel(args) {
   const modelParams = MODELS_PARAMS[args.model];
@@ -60,6 +73,10 @@ async function downloadModel(args) {
   await utils.ensureDir(assetsDir);
 
   const modelDir = path.join(assetsDir, modelParams.subDir);
+  if (args.force) {
+    shell.rm("-rf", modelDir);
+  }
+
   if (!(await utils.exists(modelDir))) {
     await utils.ensureDir(modelDir);
     shell.echo("Downloading model...");

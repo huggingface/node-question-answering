@@ -5,10 +5,11 @@ import path from "path";
 import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
 
 const ASSETS_PATH = path.join(process.cwd(), "./.models");
-const MODEL_PATH = path.join(ASSETS_PATH, "distilbert-uncased");
+const MODEL_PATH = path.join(ASSETS_PATH, "distilbert-cased");
 const VOCAB_PATH = path.join(MODEL_PATH, "vocab.txt");
 
 const DEFAULT_MODEL: ModelParams = {
+  cased: true,
   inputsNames: {
     attentionMask: "attention_mask",
     ids: "input_ids"
