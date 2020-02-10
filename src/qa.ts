@@ -302,22 +302,30 @@ export class QAClient {
       throw new Error(`No signature matching name "${partialParams.signatureName}"`);
     }
 
-    for (const inputName in partialParams.inputsNames) {
+    for (const inputName of Object.values(partialParams.inputsNames)) {
       if (!signatureDef.inputs[inputName]) {
         throw new Error(`No input matching name "${inputName}"`);
       }
     }
 
-    for (const outputName in partialParams.outputsNames) {
+    for (const outputName of Object.values(partialParams.outputsNames)) {
       if (!signatureDef.outputs[outputName]) {
         throw new Error(`No output matching name "${outputName}"`);
       }
     }
 
+    const rawShape = signatureDef.inputs[partialParams.inputsNames.ids!].shape as
+      | number[]
+      | { array: [number] }[];
+    const shape =
+      typeof rawShape[0] === "number"
+        ? rawShape
+        : (rawShape as { array: [number] }[]).map(s => s.array[0]);
+
     return {
       ...partialParams,
       path: modelOptions.path,
-      shape: signatureDef.inputs[partialParams.inputsNames.ids!].shape as [number, number]
+      shape: shape as [number, number]
     };
   }
 }
