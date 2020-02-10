@@ -2,7 +2,9 @@
 
 [![npm version](https://badge.fury.io/js/question-answering.svg)](https://www.npmjs.com/package/question-answering)
 
-Run question answering locally, directly in Node.js: no Python or C++ code needed!
+#### Run question answering locally, directly in Node.js: no Python or C++ code needed!
+
+This package leverages the power of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then uses [TensorFlow.js](https://www.tensorflow.org/js) to run the [DistilBERT](https://arxiv.org/abs/1910.01108)-cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased).
 
 ## Installation
 
@@ -37,9 +39,7 @@ const answer = await qaClient.predict(question, text);
 console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 ```
 
-## Details
-
-This package makes use of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then runs the [DistilBERT](https://arxiv.org/abs/1910.01108) cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased) thanks to [TensorFlow.js](https://www.tensorflow.org/js).
+## Advanced
 
 ### Using a different model
 
@@ -64,7 +64,7 @@ You can also choose to use a custom model and pass it to `QAClient.fromOptions`,
 
 You can provide your own tokenizer instance to `QAClient.fromOptions`, as long as it implements the [`BERTWordPieceTokenizer`](https://github.com/huggingface/tokenizers/blob/master/bindings/node/lib/tokenizers/bert-wordpiece.tokenizer.ts) methods.
 
-### Performances
+## Performances
 
 Thanks to [the native execution of SavedModel format](https://groups.google.com/a/tensorflow.org/d/msg/tfjs/Xtf6s1Bpkr0/7-Eqn8soAwAJ) in TFJS, the performance is similar to the one using TensorFlow in Python:
 
