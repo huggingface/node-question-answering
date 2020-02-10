@@ -4,6 +4,13 @@ import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
 import path from "path";
 import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
 
+import {
+  ModelInputsNames,
+  ModelOptions,
+  ModelOutputNames,
+  QAOptions
+} from "./qa-options";
+
 const ASSETS_PATH = path.join(process.cwd(), "./.models");
 const MODEL_PATH = path.join(ASSETS_PATH, "distilbert-cased");
 const VOCAB_PATH = path.join(MODEL_PATH, "vocab.txt");
@@ -22,45 +29,6 @@ const DEFAULT_MODEL: ModelParams = {
   shape: [-1, 384],
   signatureName: "serving_default"
 };
-
-export interface QAOptions {
-  model?: ModelOptions;
-  tokenizer?: BertWordPieceTokenizer;
-  vocabPath?: string;
-}
-
-export interface ModelOptions {
-  cased?: boolean;
-  inputsNames?: ModelInputsNames;
-  outputsNames?: ModelOutputNames;
-  path: string;
-  /**
-   * @default "serving_default"
-   */
-  signatureName?: string;
-}
-
-export interface ModelInputsNames {
-  /**
-   * @default "inputs_ids"
-   */
-  ids?: string;
-  /**
-   * @default "attention_mask"
-   */
-  attentionMask?: string;
-}
-
-export interface ModelOutputNames {
-  /**
-   * @default "output_0"
-   */
-  startLogits?: string;
-  /**
-   * @default "output_1"
-   */
-  endLogits?: string;
-}
 
 interface ModelParams extends Required<ModelOptions> {
   inputsNames: Required<ModelInputsNames>;
