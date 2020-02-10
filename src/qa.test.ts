@@ -64,11 +64,14 @@ describe("QAClient", () => {
       const predOne = await qa.predict("When did his father die?", context);
       expect(predOne?.text).toEqual("16 September 1380");
 
-      const predTwo = await qa.predict("How was Charles VI widely referred as?", context);
-      expect(predTwo?.text).toEqual("Charles the Beloved");
+      const predTwo = await qa.predict("Who did Charles VI marry?", context);
+      expect(predTwo?.text).toEqual("Isabeau of Bavaria");
 
-      const predThree = await qa.predict("Who did Louis marry?", context);
-      expect(predThree?.text).toEqual("Margaret of Burgundy");
+      const predThree = await qa.predict(
+        "What was the name of Isabeau's eighth child?",
+        context
+      );
+      expect(predThree?.text).toEqual("Louis");
     });
   });
 });

@@ -26,7 +26,7 @@ const question = "Who won the Super Bowl?";
 const qaClient = await QAClient.fromOptions();
 const answer = await qaClient.predict(question, text);
 
-console.log(answer); // { text: 'Denver Broncos', score: 0.37 }
+console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 ```
 
 ## Details

@@ -29,6 +29,7 @@ export interface QAOptions {
 }
 
 export interface ModelOptions {
+  cased?: boolean;
   inputsNames?: ModelInputsNames;
   outputsNames?: ModelOutputNames;
   path: string;
@@ -105,7 +106,8 @@ export class QAClient {
     const tokenizer =
       options?.tokenizer ??
       (await BertWordPieceTokenizer.fromOptions({
-        vocabFile: options?.vocabPath ?? VOCAB_PATH
+        vocabFile: options?.vocabPath ?? VOCAB_PATH,
+        lowercase: !modelParams.cased
       }));
 
     return new QAClient(model, modelParams, tokenizer);
@@ -217,15 +219,15 @@ export class QAClient {
       const ends = endLogits[i];
 
       const contextLastIndex = feature.contextStartIndex + feature.contextLength - 1;
-      const [sortedStartLogits, sortedEndLogits] = [starts, ends].map(logits =>
+      const [filteredStartLogits, filteredEndLogits] = [starts, ends].map(logits =>
         logits
           .slice(feature.contextStartIndex, contextLastIndex)
           .map<[number, number]>((val, i) => [i + feature.contextStartIndex, val])
-          .sort((a, b) => b[1] - a[1])
       );
 
-      sortedStartLogits.some(startLogit => {
-        return sortedEndLogits.some(endLogit => {
+      filteredEndLogits.sort((a, b) => b[1] - a[1]);
+      for (const startLogit of filteredStartLogits) {
+        filteredEndLogits.some(endLogit => {
           if (endLogit[0] < startLogit[0]) {
             return;
           }
@@ -242,14 +244,14 @@ export class QAClient {
             feature,
             startIndex: startLogit[0],
             endIndex: endLogit[0],
-            score: startLogit[1] * endLogit[1],
+            score: startLogit[1] + endLogit[1],
             startLogits: starts,
             endLogits: ends
           });
 
           return true;
         });
-      });
+      }
     }
 
     if (!answers.length) {
@@ -278,6 +280,7 @@ export class QAClient {
     graph: tf.MetaGraph
   ): ModelParams {
     const partialParams: Omit<ModelParams, "path" | "shape"> = {
+      cased: modelOptions.cased ?? false,
       inputsNames: {
         attentionMask:
           modelOptions.inputsNames?.attentionMask ??
