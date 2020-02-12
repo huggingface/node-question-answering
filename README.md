@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/question-answering.svg)](https://www.npmjs.com/package/question-answering)
 
-#### Question answering directly in Node.js, with only 3 lines of code!
+#### Production-ready Question Answering directly in Node.js, with only 3 lines of code!
 
 This package leverages the power of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then uses [TensorFlow.js](https://www.tensorflow.org/js) to run the [DistilBERT](https://arxiv.org/abs/1910.01108)-cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased).
 
