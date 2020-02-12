@@ -72,7 +72,7 @@ const DATA = [
     }
   };
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 20; i++) {
     console.log(`Run ${i + 1}...`);
     for (const data of DATA) {
       for (const question of data.questions) {

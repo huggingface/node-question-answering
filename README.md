@@ -50,7 +50,7 @@ You may prefer to host your model on a dedicated server. It's possible by simply
 # Inside our project root, download DistilBERT-cased to its default `.models` location
 npx question-answering download
 
-# Download the TensorFlow Serving Docker image and repo
+# Download the TensorFlow Serving Docker image
 docker pull tensorflow/serving
 
 # Start TensorFlow Serving container and open the REST API port.
