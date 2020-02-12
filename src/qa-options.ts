@@ -8,6 +8,9 @@ export interface QAOptions {
 }
 
 export interface ModelOptions {
+  /**
+   * @default false
+   */
   cased?: boolean;
   inputsNames?: ModelInputsNames;
   outputsNames?: ModelOutputNames;
