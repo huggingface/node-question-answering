@@ -2,6 +2,7 @@ import { BertWordPieceTokenizer } from "tokenizers";
 
 export interface QAOptions {
   model?: ModelOptions;
+  timeIt?: boolean;
   tokenizer?: BertWordPieceTokenizer;
   vocabPath?: string;
 }

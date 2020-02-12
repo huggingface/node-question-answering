@@ -47,7 +47,7 @@ export class QAClient {
   private constructor(
     private readonly model: Model,
     private readonly tokenizer: BertWordPieceTokenizer,
-    private readonly tokenizer: BertWordPieceTokenizer
+    private readonly timeIt?: boolean
   ) {}
 
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
@@ -60,22 +60,36 @@ export class QAClient {
         lowercase: !model.params.cased
       }));
 
-    return new QAClient(model, tokenizer);
+    return new QAClient(model, tokenizer, options?.timeIt);
   }
 
   async predict(
     question: string,
     context: string,
     maxAnswerLength = 15
-  ): Promise<Answer | null> {
+  ): Promise<Answer> {
+    const totalStartTime = Date.now();
     const features = await this.getFeatures(question, context);
 
+    const inferenceStartTime = Date.now();
     const [startLogits, endLogits] = await this.model.runInference(
       features.map(f => f.encoding.getIds()),
       features.map(f => f.encoding.getAttentionMask())
     );
+    const elapsedInferenceTime = Date.now() - inferenceStartTime;
 
-    return this.getAnswer(features, startLogits, endLogits, maxAnswerLength);
+    const answer = this.getAnswer(features, startLogits, endLogits, maxAnswerLength);
+    const totalElapsedTime = Date.now() - totalStartTime;
+
+    if (this.timeIt) {
+      return {
+        ...answer,
+        inferenceTime: elapsedInferenceTime,
+        totalTime: totalElapsedTime
+      };
+    } else {
+      return { ...answer };
+    }
   }
 
   private async getFeatures(

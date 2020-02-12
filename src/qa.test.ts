@@ -3,6 +3,13 @@ import { mocked } from "ts-jest";
 
 import { QAClient } from "./qa";
 
+const basicQuestion = "Who won the Super Bowl?";
+const basicContext = `
+  Super Bowl 50 was an American football game to determine the champion of the National Football League (NFL) for the 2015 season.
+  The American Football Conference (AFC) champion Denver Broncos defeated the National Football Conference (NFC) champion Carolina Panthers 24–10 to earn their third Super Bowl title. The game was played on February 7, 2016, at Levi's Stadium in the San Francisco Bay Area at Santa Clara, California.
+  As this was the 50th Super Bowl, the league emphasized the "golden anniversary" with various gold-themed initiatives, as well as temporarily suspending the tradition of naming each Super Bowl game with Roman numerals (under which the game would have been known as "Super Bowl L"), so that the logo could prominently feature the Arabic numerals 50.
+`;
+
 describe("QAClient", () => {
   describe("fromOptions", () => {
     it("should instantiate a QAClient with custom tokenizer when provided", async () => {
@@ -11,6 +18,18 @@ describe("QAClient", () => {
         tokenizer: (tokenizer as unknown) as BertWordPieceTokenizer
       });
       expect((qaClient as any).tokenizer).toBe(tokenizer);
+    });
+
+    it("should lead to answer without inference time by default", async () => {
+      const qaClient = await QAClient.fromOptions();
+      const predOne = await qaClient.predict(basicQuestion, basicContext);
+      expect(predOne?.inferenceTime).toBeUndefined();
+    });
+
+    it("should lead to answer with inference time when `timeIt` is `true`", async () => {
+      const qaClient = await QAClient.fromOptions({ timeIt: true });
+      const predOne = await qaClient.predict(basicQuestion, basicContext);
+      expect(typeof predOne?.inferenceTime).toBe("number");
     });
   });
 
