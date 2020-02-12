@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/question-answering.svg)](https://www.npmjs.com/package/question-answering)
 
-#### Run question answering locally, directly in Node.js: no Python or C++ code needed!
+#### Question answering directly in Node.js, locally or remotely: no Python or C++ code needed!
 
 This package leverages the power of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then uses [TensorFlow.js](https://www.tensorflow.org/js) to run the [DistilBERT](https://arxiv.org/abs/1910.01108)-cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased).
 
@@ -13,14 +13,14 @@ First download the package:
 npm install question-answering
 ```
 
-Then you need to download the model and vocabulary file that will be used:
+## Simple example
+
+This example is running the model locally. To do so, you first need to download the model and vocabulary file:
 ```bash
 npx question-answering download
 ```
 
-By default, the model and vocabulary are downloaded inside a `.models` directory at the root of your project; you can provide a custom directory by using the `--dir` option of the CLI.
-
-## Simple example
+> By default, the model and vocabulary are downloaded inside a `.models` directory at the root of your project; you can provide a custom directory by using the `--dir` option of the CLI.
 
 ```typescript
 import { QAClient } from "question-answering";
@@ -41,6 +41,36 @@ console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 
 ## Advanced
 
+<a name="remote-model"></a>
+### Using a remote model with [TensorFlow Serving](https://www.tensorflow.org/tfx/guide/serving)
+
+You may prefer to host your model on a dedicated server. It's possible by simply passing the server endpoint as the `path` option, and passing `remote` to `true`. Here is a simple example using [Docker](https://www.tensorflow.org/tfx/serving/docker) locally:
+
+```bash
+# Inside our project root, download DistilBERT-cased to its default `.models` location
+npx question-answering download
+
+# Download the TensorFlow Serving Docker image and repo
+docker pull tensorflow/serving
+
+# Start TensorFlow Serving container and open the REST API port.
+# Notice that in the `target` path we add a `/1`:
+# this is required by TFX which is expecting our models to be "versioned"
+docker run -t --rm -p 8501:8501 \
+    --mount type=bind,source="$(pwd)/.models/distilbert-cased/",target="/models/cased/1" \
+    -e MODEL_NAME=cased \
+    tensorflow/serving &
+```
+
+Then in your code:
+
+```typescript
+const qaClient = await QAClient.fromOptions({
+  model: { path: "http://localhost:8501/v1/models/cased", cased: true, remote: true }
+});
+```
+
+
 ### Using a different model
 
 You can choose to use the uncased version of DistilBERT instead.
@@ -58,7 +88,7 @@ const qaClient = await QAClient.fromOptions({
 });
 ```
 
-You can also choose to use a custom model and pass it to `QAClient.fromOptions`, the same way than for DistilBERT-uncased. Check the [`QAOptions`](src/qa-options.ts) interface for the complete list of options.
+You can also choose to use a custom model and pass it to `QAClient.fromOptions`, the same way than for DistilBERT-uncased. Check the [`QAOptions`](src/qa-options.ts) interface for the complete list of options. And you can still [host it remotely](#remote-model).
 
 ### Using a custom tokenizer
 

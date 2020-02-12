@@ -21,9 +21,11 @@
   "dependencies": {
     "@tensorflow/tfjs-node": "^1.5.2",
     "@types/node": "^13.5.0",
+    "@types/node-fetch": "^2.5.4",
     "@types/progress": "^2.0.3",
     "@types/tar": "^4.0.3",
     "@types/yargs": "^15.0.3",
+    "node-fetch": "^2.6.0",
     "progress": "^2.0.3",
     "shelljs": "^0.8.3",
     "tar": "^5.0.5",

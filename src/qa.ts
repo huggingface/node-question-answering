@@ -1,39 +1,20 @@
-import * as tf from "@tensorflow/tfjs-node";
-import { NamedTensorMap } from "@tensorflow/tfjs-node";
-import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
 import path from "path";
 import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
 
-import {
-  ModelInputsNames,
-  ModelOptions,
-  ModelOutputNames,
-  QAOptions
-} from "./qa-options";
+import { LocalModel } from "./local.model";
+import { Model } from "./model";
+import { ModelOptions, QAOptions } from "./qa-options";
+import { RemoteModel } from "./remote.model";
 
-const ASSETS_PATH = path.join(process.cwd(), "./.models");
-const MODEL_PATH = path.join(ASSETS_PATH, "distilbert-cased");
-const VOCAB_PATH = path.join(MODEL_PATH, "vocab.txt");
+const DEFAULT_ASSETS_PATH = path.join(process.cwd(), "./.models");
+const DEFAULT_MODEL_PATH = path.join(DEFAULT_ASSETS_PATH, "distilbert-cased");
+const DEFAULT_VOCAB_PATH = path.join(DEFAULT_MODEL_PATH, "vocab.txt");
 
-const DEFAULT_MODEL: ModelParams = {
-  cased: true,
-  inputsNames: {
-    attentionMask: "attention_mask",
-    ids: "input_ids"
-  },
-  outputsNames: {
-    endLogits: "output_1",
-    startLogits: "output_0"
-  },
-  path: MODEL_PATH,
-  shape: [-1, 384],
-  signatureName: "serving_default"
-};
-
-interface ModelParams extends Required<ModelOptions> {
-  inputsNames: Required<ModelInputsNames>;
-  outputsNames: Required<ModelOutputNames>;
-  shape: [number, number];
+interface Feature {
+  contextLength: number;
+  contextStartIndex: number;
+  encoding: Encoding;
+  maxContextMap: ReadonlyMap<number, boolean>;
 }
 
 interface Span {
@@ -43,43 +24,43 @@ interface Span {
   startIndex: number;
 }
 
-interface Feature {
-  contextLength: number;
-  contextStartIndex: number;
-  encoding: Encoding;
-  maxContextMap: ReadonlyMap<number, boolean>;
-}
-
 interface Answer {
-  score: number;
-  text: string;
+  /**
+   * Only provided if `timeIt` option was true when creating the QAClient
+   */
+  inferenceTime?: number;
+  /**
+   * Only provided if answer found
+   */
+  score?: number;
+  /**
+   * Only provided if answer found
+   */
+  text?: string;
+  /**
+   * Only provided if `timeIt` option was true when creating the QAClient
+   */
+  totalTime?: number;
 }
 
 export class QAClient {
   private constructor(
-    private readonly model: TFSavedModel,
-    private readonly modelParams: ModelParams,
+    private readonly model: Model,
+    private readonly tokenizer: BertWordPieceTokenizer,
     private readonly tokenizer: BertWordPieceTokenizer
   ) {}
 
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
-    let modelParams: ModelParams;
-    if (!options?.model) {
-      modelParams = DEFAULT_MODEL;
-    } else {
-      const modelGraph = await tf.node.getMetaGraphsFromSavedModel(options.model.path);
-      modelParams = this.getModelParams(options.model, modelGraph[0]);
-    }
+    const model = await this.getModel(options?.model);
 
-    const model = await tf.node.loadSavedModel(modelParams.path);
     const tokenizer =
       options?.tokenizer ??
       (await BertWordPieceTokenizer.fromOptions({
-        vocabFile: options?.vocabPath ?? VOCAB_PATH,
-        lowercase: !modelParams.cased
+        vocabFile: options?.vocabPath ?? DEFAULT_VOCAB_PATH,
+        lowercase: !model.params.cased
       }));
 
-    return new QAClient(model, modelParams, tokenizer);
+    return new QAClient(model, tokenizer);
   }
 
   async predict(
@@ -89,37 +70,10 @@ export class QAClient {
   ): Promise<Answer | null> {
     const features = await this.getFeatures(question, context);
 
-    const inputTensor = tf.tensor(
+    const [startLogits, endLogits] = await this.model.runInference(
       features.map(f => f.encoding.getIds()),
-      undefined,
-      "int32"
+      features.map(f => f.encoding.getAttentionMask())
     );
-
-    const maskTensor = tf.tensor(
-      features.map(f => f.encoding.getAttentionMask()),
-      undefined,
-      "int32"
-    );
-
-    const result = this.model.predict({
-      [this.modelParams.inputsNames.ids]: inputTensor,
-      [this.modelParams.inputsNames.attentionMask]: maskTensor
-    }) as NamedTensorMap;
-
-    let startLogits = (await result[this.modelParams.outputsNames.startLogits]
-      .squeeze()
-      .array()) as number[] | number[][];
-    let endLogits = (await result[this.modelParams.outputsNames.endLogits]
-      .squeeze()
-      .array()) as number[] | number[][];
-
-    if (isOneDimensional(startLogits)) {
-      startLogits = [startLogits];
-    }
-
-    if (isOneDimensional(endLogits)) {
-      endLogits = [endLogits];
-    }
 
     return this.getAnswer(features, startLogits, endLogits, maxAnswerLength);
   }
@@ -129,8 +83,8 @@ export class QAClient {
     context: string,
     stride = 128
   ): Promise<Feature[]> {
-    this.tokenizer.setPadding({ maxLength: this.modelParams.shape[1] });
-    this.tokenizer.setTruncation(this.modelParams.shape[1], {
+    this.tokenizer.setPadding({ maxLength: this.model.params.shape[1] });
+    this.tokenizer.setTruncation(this.model.params.shape[1], {
       strategy: TruncationStrategy.OnlySecond,
       stride
     });
@@ -244,57 +198,12 @@ export class QAClient {
     };
   }
 
-  private static getModelParams(
-    modelOptions: ModelOptions,
-    graph: tf.MetaGraph
-  ): ModelParams {
-    const partialParams: Omit<ModelParams, "path" | "shape"> = {
-      cased: modelOptions.cased ?? false,
-      inputsNames: {
-        attentionMask:
-          modelOptions.inputsNames?.attentionMask ??
-          DEFAULT_MODEL.inputsNames.attentionMask,
-        ids: modelOptions.inputsNames?.ids ?? DEFAULT_MODEL.inputsNames.ids
-      },
-      outputsNames: {
-        endLogits:
-          modelOptions.outputsNames?.endLogits ?? DEFAULT_MODEL.outputsNames.endLogits,
-        startLogits:
-          modelOptions.outputsNames?.startLogits ?? DEFAULT_MODEL.outputsNames.startLogits
-      },
-      signatureName: modelOptions.signatureName ?? DEFAULT_MODEL.signatureName
-    };
-
-    const signatureDef = graph.signatureDefs[partialParams.signatureName];
-    if (!signatureDef) {
-      throw new Error(`No signature matching name "${partialParams.signatureName}"`);
+  private static async getModel(options?: ModelOptions): Promise<Model> {
+    if (options && options.remote) {
+      return RemoteModel.fromOptions(options);
+    } else {
+      return LocalModel.fromOptions(options ?? { path: DEFAULT_MODEL_PATH, cased: true });
     }
-
-    for (const inputName of Object.values(partialParams.inputsNames)) {
-      if (!signatureDef.inputs[inputName]) {
-        throw new Error(`No input matching name "${inputName}"`);
-      }
-    }
-
-    for (const outputName of Object.values(partialParams.outputsNames)) {
-      if (!signatureDef.outputs[outputName]) {
-        throw new Error(`No output matching name "${outputName}"`);
-      }
-    }
-
-    const rawShape = signatureDef.inputs[partialParams.inputsNames.ids!].shape as
-      | number[]
-      | { array: [number] }[];
-    const shape =
-      typeof rawShape[0] === "number"
-        ? rawShape
-        : (rawShape as { array: [number] }[]).map(s => s.array[0]);
-
-    return {
-      ...partialParams,
-      path: modelOptions.path,
-      shape: shape as [number, number]
-    };
   }
 }
 
@@ -340,8 +249,4 @@ function softMax(values: number[]): number[] {
   const exps = values.map(x => Math.exp(x - max));
   const expsSum = exps.reduce((a, b) => a + b);
   return exps.map(e => e / expsSum);
-}
-
-function isOneDimensional(arr: number[] | number[][]): arr is number[] {
-  return !Array.isArray(arr[0]);
 }

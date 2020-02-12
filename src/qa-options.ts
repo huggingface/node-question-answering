@@ -11,6 +11,7 @@ export interface ModelOptions {
   inputsNames?: ModelInputsNames;
   outputsNames?: ModelOutputNames;
   path: string;
+  remote?: boolean;
   /**
    * @default "serving_default"
    */
