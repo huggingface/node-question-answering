@@ -100,4 +100,4 @@ Thanks to [the native execution of SavedModel format](https://groups.google.com/
 Specifically, here are the results of a benchmark using `question-answering` completely locally, with a (pseudo-)remote model server (i.e. local Docker), and using the Question Answering pipeline in the [`transformers`](https://github.com/huggingface/transformers) library.
 
 ![QA benchmark chart](https://docs.google.com/spreadsheets/d/e/2PACX-1vRCprbDB9T8nwdOpRv2pmlOXWKw3vVOx5P2jbn7hipjCyaGRuQS3u5KWpE7ux5Q0jbqT9HFVMivkI4x/pubchart?oid=2051609279&format=image)
-_Shorts texts are texts between 500 and 1000 characters, long texts are between 4000 and 5000 characters. You can check the `question-answering` benchmark script [here](./scripts/benchmark.js) (the `transformers` one is equivalent)._
+_Shorts texts are texts between 500 and 1000 characters, long texts are between 4000 and 5000 characters. You can check the `question-answering` benchmark script [here](./scripts/benchmark.js) (the `transformers` one is equivalent). Benchmark run on a standard 2019 MacBook Pro running on macOS 10.15.2._
