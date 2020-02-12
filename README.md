@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/question-answering.svg)](https://www.npmjs.com/package/question-answering)
 
-#### Question answering directly in Node.js, locally or remotely: no Python or C++ code needed!
+#### Question answering directly in Node.js, with only 3 lines of code!
 
 This package leverages the power of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then uses [TensorFlow.js](https://www.tensorflow.org/js) to run the [DistilBERT](https://arxiv.org/abs/1910.01108)-cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased).
 
@@ -43,7 +43,7 @@ console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 <a name="remote-model"></a>
 ### Using a remote model with [TensorFlow Serving](https://www.tensorflow.org/tfx/guide/serving)
 
-You may prefer to host your model on a dedicated server. It's possible by simply passing the server endpoint as the `path` option, and passing `remote` to `true`. Here is a simple example using [Docker](https://www.tensorflow.org/tfx/serving/docker) locally:
+You may prefer to host your model on a dedicated server. It's possible by simply passing the server endpoint as the `path` option and `remote` to `true`. Here is a simple example using [Docker](https://www.tensorflow.org/tfx/serving/docker) locally:
 
 ```bash
 # Inside our project root, download DistilBERT-cased to its default `.models` location
@@ -54,7 +54,7 @@ docker pull tensorflow/serving
 
 # Start TensorFlow Serving container and open the REST API port.
 # Notice that in the `target` path we add a `/1`:
-# this is required by TFX which is expecting our models to be "versioned"
+# this is required by TFX which is expecting the models to be "versioned"
 docker run -t --rm -p 8501:8501 \
     --mount type=bind,source="$(pwd)/.models/distilbert-cased/",target="/models/cased/1" \
     -e MODEL_NAME=cased \
@@ -74,7 +74,7 @@ const qaClient = await QAClient.fromOptions({
 
 You can choose to use the uncased version of DistilBERT instead.
 
-First download the uncased model:
+First, download the uncased model:
 ```bash
 npx question-answering download distilbert-uncased
 ```
@@ -95,7 +95,9 @@ You can provide your own tokenizer instance to `QAClient.fromOptions`, as long a
 
 ## Performances
 
-Thanks to [the native execution of SavedModel format](https://groups.google.com/a/tensorflow.org/d/msg/tfjs/Xtf6s1Bpkr0/7-Eqn8soAwAJ) in TFJS, the performance is similar to the one using TensorFlow in Python:
+Thanks to [the native execution of SavedModel format](https://groups.google.com/a/tensorflow.org/d/msg/tfjs/Xtf6s1Bpkr0/7-Eqn8soAwAJ) in TFJS, the performance of such models is similar to the one using TensorFlow in Python. 
 
-![Inference latency of MobileNet v2 between native execution in Node.js against converted execution and core Python TF on both CPU and GPU](https://lh4.googleusercontent.com/aTAHknwotexVqj_5sENZIKpsh-EsP8AuDaBupZEjuTBMzAcPbkuLP-LHuhvPoGpEmSCPpMr9MXj2up6GHbo0BNwzTY779GMzZx5EeljBNfkjQzUO-i5IO1XKMTuGQqcCYekjHZ_3)
-_Inference latency of MobileNet v2 between native execution in Node.js against converted execution and core Python TF on both CPU and GPU_
+Specifically, here are the results of a benchmark using `question-answering` completely locally, with a (pseudo-)remote model server (i.e. local Docker), and using the Question Answering pipeline in the [`transformers`](https://github.com/huggingface/transformers) library.
+
+![QA benchmark chart](https://docs.google.com/spreadsheets/d/e/2PACX-1vRCprbDB9T8nwdOpRv2pmlOXWKw3vVOx5P2jbn7hipjCyaGRuQS3u5KWpE7ux5Q0jbqT9HFVMivkI4x/pubchart?oid=2051609279&format=image)
+_Shorts texts are texts between 500 and 1000 characters, long texts are between 4000 and 5000 characters. You can check the `question-answering` benchmark script [here](./scripts/benchmark.js) (the `transformers` one is equivalent)._
