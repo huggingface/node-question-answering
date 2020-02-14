@@ -7,9 +7,9 @@ const exists = promisify(fs.exists);
 /**
  * Ensures a directory exists, creates as needed.
  */
-async function ensureDir(dirPath) {
+async function ensureDir(dirPath, recursive = true) {
   if (!(await exists(dirPath))) {
-    shell.mkdir(dirPath);
+    recursive ? shell.mkdir("-p", dirPath) : shell.mkdir(dirPath);
   }
 }
 

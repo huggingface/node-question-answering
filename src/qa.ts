@@ -3,12 +3,13 @@ import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers
 
 import { LocalModel } from "./local.model";
 import { Model } from "./model";
-import { ModelOptions, QAOptions } from "./qa-options";
+import {
+  DEFAULT_MODEL_PATH,
+  DEFAULT_VOCAB_PATH,
+  ModelOptions,
+  QAOptions
+} from "./qa-options";
 import { RemoteModel } from "./remote.model";
-
-const DEFAULT_ASSETS_PATH = path.join(process.cwd(), "./.models");
-const DEFAULT_MODEL_PATH = path.join(DEFAULT_ASSETS_PATH, "distilbert-cased");
-const DEFAULT_VOCAB_PATH = path.join(DEFAULT_MODEL_PATH, "vocab.txt");
 
 interface Feature {
   contextLength: number;

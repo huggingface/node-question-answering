@@ -12,7 +12,14 @@ const basicContext = `
 
 describe("QAClient", () => {
   describe("fromOptions", () => {
-    it("should instantiate a QAClient with custom tokenizer when provided", async () => {
+    it("instantiates a QAClient with a partial path for the model", async () => {
+      const qaClient = await QAClient.fromOptions({
+        model: { path: "distilbert-cased" }
+      });
+      expect(qaClient).toBeDefined();
+    });
+
+    it("instantiates a QAClient with custom tokenizer when provided", async () => {
       const tokenizer = jest.fn();
       const qaClient = await QAClient.fromOptions({
         tokenizer: (tokenizer as unknown) as BertWordPieceTokenizer
@@ -20,13 +27,13 @@ describe("QAClient", () => {
       expect((qaClient as any).tokenizer).toBe(tokenizer);
     });
 
-    it("should lead to answer without inference time by default", async () => {
+    it("leads to answer without inference time by default", async () => {
       const qaClient = await QAClient.fromOptions();
       const predOne = await qaClient.predict(basicQuestion, basicContext);
       expect(predOne?.inferenceTime).toBeUndefined();
     });
 
-    it("should lead to answer with inference time when `timeIt` is `true`", async () => {
+    it("leads to answer with inference time when `timeIt` is `true`", async () => {
       const qaClient = await QAClient.fromOptions({ timeIt: true });
       const predOne = await qaClient.predict(basicQuestion, basicContext);
       expect(typeof predOne?.inferenceTime).toBe("number");
@@ -40,7 +47,7 @@ describe("QAClient", () => {
       qa = await QAClient.fromOptions();
     });
 
-    it("should give the correct answer with short contexts", async () => {
+    it("gives the correct answer with short contexts", async () => {
       const contexts = [
         `
           Super Bowl 50 was an American football game to determine the champion of the National Football League (NFL) for the 2015 season.
@@ -61,7 +68,7 @@ describe("QAClient", () => {
       expect(predTwo?.text).toEqual("Żelazowa Wola");
     });
 
-    it("should give the correct answer with long contexts", async () => {
+    it("gives the correct answer with long contexts", async () => {
       const context = `
         At his father's death on 16 September 1380, Charles VI inherited the throne of France. His coronation took place on 4 November 1380, at Reims Cathedral. Charles VI was only 11 years old when he was crowned King of France. During his minority, France was ruled by Charles' uncles, as regents. Although the royal age of majority was 14 (the "age of accountability" under Roman Catholic canon law), Charles terminated the regency only at the age of 21.
 

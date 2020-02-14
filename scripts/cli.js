@@ -7,6 +7,8 @@ const https = require("https");
 const ProgressBar = require("progress");
 const tar = require("tar");
 const yargs = require("yargs");
+const fetch = require("node-fetch");
+
 const utils = require("./utils");
 
 const MODELS_PARAMS = {
@@ -40,7 +42,6 @@ yargs
       yargs
         .positional("model", {
           default: "distilbert-cased",
-          choices: ["distilbert-cased", "distilbert-uncased"],
           type: "string"
         })
         .option("dir", {
@@ -64,10 +65,24 @@ yargs
 
 /**
  * Download a model with associated vocabulary
- * @param {yargs.Arguments<{ model: "cased" | "uncased", dir: string, force?: boolean }>} args
+ * @param {yargs.Arguments<{ model: string, dir: string, force?: boolean }>} args
  */
 async function downloadModel(args) {
-  const modelParams = MODELS_PARAMS[args.model];
+  let modelParams = MODELS_PARAMS[args.model];
+
+  if (!modelParams) {
+    const modelUrl = `https://cdn.huggingface.co/${args.model}/saved_model.tar.gz`;
+    const remoteModel = await fetch(modelUrl, { method: "HEAD" });
+    if (!remoteModel.ok) {
+      throw new Error("The requested model doesn't seem to exist");
+    }
+
+    modelParams = {
+      subDir: args.model,
+      modelUrl: modelUrl,
+      vocabUrl: `https://cdn.huggingface.co/${args.model}/vocab.txt`
+    };
+  }
 
   const assetsDir = path.join(ROOT_DIR, args.dir);
   await utils.ensureDir(assetsDir);

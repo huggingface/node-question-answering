@@ -1,9 +1,12 @@
 import * as tf from "@tensorflow/tfjs-node";
 import { NamedTensorMap } from "@tensorflow/tfjs-node";
 import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
+import { exists } from "fs";
+import * as path from "path";
+import { promisify } from "util";
 
 import { Model, ModelParams } from "./model";
-import { ModelOptions } from "./qa-options";
+import { DEFAULT_ASSETS_PATH, ModelOptions } from "./qa-options";
 
 export class LocalModel extends Model {
   private constructor(private model: TFSavedModel, public params: ModelParams) {
@@ -41,6 +44,10 @@ export class LocalModel extends Model {
   }
 
   static async fromOptions(options: ModelOptions): Promise<LocalModel> {
+    options.path = (await promisify(exists)(options.path))
+      ? options.path
+      : path.join(DEFAULT_ASSETS_PATH, options.path);
+
     const modelGraph = (await tf.node.getMetaGraphsFromSavedModel(options.path))[0];
     const fullParams = this.computeParams(options, modelGraph);
 

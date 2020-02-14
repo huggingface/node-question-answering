@@ -1,2 +1,7 @@
 export * from "./qa";
-export * from "./qa-options";
+export {
+  ModelInputsNames,
+  ModelOptions,
+  ModelOutputNames,
+  QAOptions
+} from "./qa-options";
