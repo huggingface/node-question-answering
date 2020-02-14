@@ -25,7 +25,7 @@ interface Span {
   startIndex: number;
 }
 
-interface Answer {
+export interface Answer {
   /**
    * Only provided if `timeIt` option was true when creating the QAClient
    */
