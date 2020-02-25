@@ -1,9 +1,12 @@
+import { exists as fsExists } from "fs";
 import path from "path";
 import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
+import { promisify } from "util";
 
 import { LocalModel } from "./local.model";
 import { Model } from "./model";
 import {
+  DEFAULT_ASSETS_PATH,
   DEFAULT_MODEL_PATH,
   DEFAULT_VOCAB_PATH,
   ModelOptions,
@@ -54,12 +57,31 @@ export class QAClient {
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
     const model = await this.getModel(options?.model);
 
-    const tokenizer =
-      options?.tokenizer ??
-      (await BertWordPieceTokenizer.fromOptions({
-        vocabFile: options?.vocabPath ?? DEFAULT_VOCAB_PATH,
+    let tokenizer: BertWordPieceTokenizer;
+    if (options?.tokenizer) {
+      tokenizer = options.tokenizer;
+    } else {
+      let vocabPath = options?.vocabPath;
+      if (!vocabPath) {
+        if (options?.model?.path) {
+          const existsAsync = promisify(fsExists);
+          const fullPath = (await existsAsync(options.model.path))
+            ? path.join(options.model.path, "vocab.txt")
+            : path.join(DEFAULT_ASSETS_PATH, options.model.path, "vocab.txt");
+
+          if (await existsAsync(fullPath)) {
+            vocabPath = fullPath;
+          }
+        }
+
+        vocabPath = vocabPath ?? DEFAULT_VOCAB_PATH;
+      }
+
+      tokenizer = await BertWordPieceTokenizer.fromOptions({
+        vocabFile: vocabPath,
         lowercase: !model.params.cased
-      }));
+      });
+    }
 
     return new QAClient(model, tokenizer, options?.timeIt);
   }
