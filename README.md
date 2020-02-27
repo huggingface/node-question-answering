@@ -91,7 +91,7 @@ You can also choose to use a custom model and pass it to `QAClient.fromOptions`,
 
 ### Using a custom tokenizer
 
-You can provide your own tokenizer instance to `QAClient.fromOptions`, as long as it implements the [`BERTWordPieceTokenizer`](https://github.com/huggingface/tokenizers/blob/master/bindings/node/lib/tokenizers/bert-wordpiece.tokenizer.ts) methods.
+You can provide your own tokenizer instance to `QAClient.fromOptions`, as long as it implements the [`BERTWordPieceTokenizer`](https://github.com/huggingface/tokenizers/blob/master/bindings/node/lib/implementations/tokenizers/bert-wordpiece.tokenizer.ts) methods.
 
 ## Performances
 
