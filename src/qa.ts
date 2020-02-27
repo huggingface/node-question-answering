@@ -96,8 +96,8 @@ export class QAClient {
 
     const inferenceStartTime = Date.now();
     const [startLogits, endLogits] = await this.model.runInference(
-      features.map(f => f.encoding.getIds()),
-      features.map(f => f.encoding.getAttentionMask())
+      features.map(f => f.encoding.ids),
+      features.map(f => f.encoding.attentionMask)
     );
     const elapsedInferenceTime = Date.now() - inferenceStartTime;
 
@@ -127,16 +127,15 @@ export class QAClient {
     });
 
     const encoding = await this.tokenizer.encode(question, context);
-    const encodings = [encoding, ...encoding.getOverflowing()];
+    const encodings = [encoding, ...encoding.overflowing];
 
     const questionLength =
-      encoding.getTokens().indexOf(this.tokenizer.configuration.sepToken) - 1; // Take [CLS] into account
+      encoding.tokens.indexOf(this.tokenizer.configuration.sepToken) - 1; // Take [CLS] into account
     const questionLengthWithTokens = questionLength + 2;
 
     const spans: Span[] = encodings.map((e, i) => {
-      const specialTokensMask = e.getSpecialTokensMask();
-      const nbAddedTokens = specialTokensMask.reduce((acc, val) => acc + val, 0);
-      const actualLength = specialTokensMask.length - nbAddedTokens;
+      const nbAddedTokens = e.specialTokensMask.reduce((acc, val) => acc + val, 0);
+      const actualLength = e.length - nbAddedTokens;
 
       return {
         startIndex: i * stride,
@@ -219,7 +218,7 @@ export class QAClient {
     }
 
     const answer = answers.sort((a, b) => b.score - a.score)[0];
-    const offsets = answer.feature.encoding.getOffsets();
+    const offsets = answer.feature.encoding.offsets;
     const answerText = features[0].encoding.getOriginalString(
       offsets[answer.startIndex][0],
       offsets[answer.endIndex][1]
