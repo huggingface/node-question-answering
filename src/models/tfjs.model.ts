@@ -32,16 +32,22 @@ export class TFJSModel extends Model {
     ids: number[][],
     attentionMask: number[][]
   ): Promise<[number[][], number[][]]> {
-    const inputTensor = tf.tensor(ids, undefined, "int32");
-    const maskTensor = tf.tensor(attentionMask, undefined, "int32");
+    const result = tf.tidy(() => {
+      const inputTensor = tf.tensor(ids, undefined, "int32");
+      const maskTensor = tf.tensor(attentionMask, undefined, "int32");
 
-    const result = this.model.predict({
-      [this.params.inputsNames.ids]: inputTensor,
-      [this.params.inputsNames.attentionMask]: maskTensor
-    }) as tf.Tensor[];
+      return this.model.predict({
+        [this.params.inputsNames.ids]: inputTensor,
+        [this.params.inputsNames.attentionMask]: maskTensor
+      }) as tf.Tensor[];
+    });
 
-    let startLogits = (await result[0].squeeze().array()) as number[] | number[][];
-    let endLogits = (await result[1].squeeze().array()) as number[] | number[][];
+    let [startLogits, endLogits] = await Promise.all([
+      result[0].squeeze().array() as Promise<number[] | number[][]>,
+      result[1].squeeze().array() as Promise<number[] | number[][]>
+    ]);
+
+    tf.dispose(result);
 
     if (isOneDimensional(startLogits)) {
       startLogits = [startLogits];

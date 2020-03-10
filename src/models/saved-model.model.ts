@@ -16,20 +16,26 @@ export class SavedModel extends Model {
     ids: number[][],
     attentionMask: number[][]
   ): Promise<[number[][], number[][]]> {
-    const inputTensor = tf.tensor(ids, undefined, "int32");
-    const maskTensor = tf.tensor(attentionMask, undefined, "int32");
+    const result = tf.tidy(() => {
+      const inputTensor = tf.tensor(ids, undefined, "int32");
+      const maskTensor = tf.tensor(attentionMask, undefined, "int32");
 
-    const result = this.model.predict({
-      [this.params.inputsNames.ids]: inputTensor,
-      [this.params.inputsNames.attentionMask]: maskTensor
-    }) as tf.NamedTensorMap;
+      return this.model.predict({
+        [this.params.inputsNames.ids]: inputTensor,
+        [this.params.inputsNames.attentionMask]: maskTensor
+      }) as tf.NamedTensorMap;
+    });
 
-    let startLogits = (await result[this.params.outputsNames.startLogits]
-      .squeeze()
-      .array()) as number[] | number[][];
-    let endLogits = (await result[this.params.outputsNames.endLogits]
-      .squeeze()
-      .array()) as number[] | number[][];
+    let [startLogits, endLogits] = await Promise.all([
+      result[this.params.outputsNames.startLogits].squeeze().array() as Promise<
+        number[] | number[][]
+      >,
+      result[this.params.outputsNames.endLogits].squeeze().array() as Promise<
+        number[] | number[][]
+      >
+    ]);
+
+    tf.dispose(result);
 
     if (isOneDimensional(startLogits)) {
       startLogits = [startLogits];
