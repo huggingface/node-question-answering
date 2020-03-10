@@ -1,14 +1,13 @@
 import * as tf from "@tensorflow/tfjs-node";
-import { NamedTensorMap } from "@tensorflow/tfjs-node";
 import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
 import { exists } from "fs";
 import * as path from "path";
 import { promisify } from "util";
 
-import { Model, ModelParams } from "./model";
-import { DEFAULT_ASSETS_PATH, ModelOptions } from "./qa-options";
+import { DEFAULT_ASSETS_PATH } from "../qa-options";
+import { isOneDimensional, Model, ModelOptions, ModelParams } from "./model";
 
-export class LocalModel extends Model {
+export class SavedModel extends Model {
   private constructor(private model: TFSavedModel, public params: ModelParams) {
     super();
   }
@@ -23,7 +22,7 @@ export class LocalModel extends Model {
     const result = this.model.predict({
       [this.params.inputsNames.ids]: inputTensor,
       [this.params.inputsNames.attentionMask]: maskTensor
-    }) as NamedTensorMap;
+    }) as tf.NamedTensorMap;
 
     let startLogits = (await result[this.params.outputsNames.startLogits]
       .squeeze()
@@ -43,7 +42,7 @@ export class LocalModel extends Model {
     return [startLogits, endLogits];
   }
 
-  static async fromOptions(options: ModelOptions): Promise<LocalModel> {
+  static async fromOptions(options: ModelOptions): Promise<SavedModel> {
     options.path = (await promisify(exists)(options.path))
       ? options.path
       : path.join(DEFAULT_ASSETS_PATH, options.path);
@@ -52,10 +51,6 @@ export class LocalModel extends Model {
     const fullParams = this.computeParams(options, modelGraph);
 
     const model = await tf.node.loadSavedModel(fullParams.path);
-    return new LocalModel(model, fullParams);
+    return new SavedModel(model, fullParams);
   }
-}
-
-function isOneDimensional(arr: number[] | number[][]): arr is number[] {
-  return !Array.isArray(arr[0]);
 }

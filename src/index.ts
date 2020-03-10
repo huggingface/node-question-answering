@@ -1,7 +1,3 @@
 export * from "./qa";
-export {
-  ModelInputsNames,
-  ModelOptions,
-  ModelOutputNames,
-  QAOptions
-} from "./qa-options";
+export * from "./models";
+export { QAOptions } from "./qa-options";

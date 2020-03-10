@@ -3,16 +3,14 @@ import path from "path";
 import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
 import { promisify } from "util";
 
-import { LocalModel } from "./local.model";
-import { Model } from "./model";
+import { Model } from "./models/model";
+import { SavedModel } from "./models/saved-model.model";
 import {
   DEFAULT_ASSETS_PATH,
   DEFAULT_MODEL_PATH,
   DEFAULT_VOCAB_PATH,
-  ModelOptions,
   QAOptions
 } from "./qa-options";
-import { RemoteModel } from "./remote.model";
 
 interface Feature {
   contextLength: number;
@@ -55,7 +53,9 @@ export class QAClient {
   ) {}
 
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
-    const model = await this.getModel(options?.model);
+    const model =
+      options?.model ??
+      (await SavedModel.fromOptions({ path: DEFAULT_MODEL_PATH, cased: true }));
 
     let tokenizer: BertWordPieceTokenizer;
     if (options?.tokenizer) {
@@ -63,11 +63,11 @@ export class QAClient {
     } else {
       let vocabPath = options?.vocabPath;
       if (!vocabPath) {
-        if (options?.model?.path) {
+        if (options?.model?.params.path) {
           const existsAsync = promisify(fsExists);
-          const fullPath = (await existsAsync(options.model.path))
-            ? path.join(options.model.path, "vocab.txt")
-            : path.join(DEFAULT_ASSETS_PATH, options.model.path, "vocab.txt");
+          const fullPath = (await existsAsync(options.model.params.path))
+            ? path.join(options.model.params.path, "vocab.txt")
+            : path.join(DEFAULT_ASSETS_PATH, options.model.params.path, "vocab.txt");
 
           if (await existsAsync(fullPath)) {
             vocabPath = fullPath;
@@ -232,14 +232,6 @@ export class QAClient {
       text: answerText,
       score: Math.round((probScore + Number.EPSILON) * 100) / 100
     };
-  }
-
-  private static async getModel(options?: ModelOptions): Promise<Model> {
-    if (options && options.remote) {
-      return RemoteModel.fromOptions(options);
-    } else {
-      return LocalModel.fromOptions(options ?? { path: DEFAULT_MODEL_PATH, cased: true });
-    }
   }
 }
 

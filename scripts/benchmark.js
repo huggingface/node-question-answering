@@ -56,6 +56,11 @@ const DATA = [
 (async () => {
   const qaClient = await QAClient.fromOptions({
     // model: { path: "http://localhost:8501/v1/models/cased", cased: true, remote: true },
+    // model: {
+    //   path: "distilbert-cased",
+    //   cased: true,
+    //   outputsNames: { startLogits: "Identity", endLogits: "Identity_1" }
+    // },
     timeIt: true
   });
 

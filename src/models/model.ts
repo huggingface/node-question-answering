@@ -1,6 +1,4 @@
-import { ModelInputsNames, ModelOptions, ModelOutputNames } from "./qa-options";
-
-const MODEL_DEFAULTS = {
+const MODEL_DEFAULTS: ModelDefaults = {
   inputsNames: {
     attentionMask: "attention_mask",
     ids: "input_ids"
@@ -15,6 +13,10 @@ const MODEL_DEFAULTS = {
 export abstract class Model {
   abstract params: Readonly<ModelParams>;
 
+  protected static get defaults(): Readonly<ModelDefaults> {
+    return MODEL_DEFAULTS;
+  }
+
   abstract runInference(
     ids: number[][],
     attentionMask: number[][]
@@ -22,23 +24,23 @@ export abstract class Model {
 
   protected static computeParams(
     options: ModelOptions,
-    graph: PartialMetaGraph
+    graph: PartialMetaGraph,
+    defaults: Readonly<ModelDefaults> = this.defaults
   ): ModelParams {
     const partialParams: Omit<ModelParams, "shape"> = {
       cased: options.cased ?? false,
       inputsNames: {
         attentionMask:
-          options.inputsNames?.attentionMask ?? MODEL_DEFAULTS.inputsNames.attentionMask,
-        ids: options.inputsNames?.ids ?? MODEL_DEFAULTS.inputsNames.ids
+          options.inputsNames?.attentionMask ?? defaults.inputsNames.attentionMask,
+        ids: options.inputsNames?.ids ?? defaults.inputsNames.ids
       },
       outputsNames: {
-        endLogits:
-          options.outputsNames?.endLogits ?? MODEL_DEFAULTS.outputsNames.endLogits,
+        endLogits: options.outputsNames?.endLogits ?? defaults.outputsNames.endLogits,
         startLogits:
-          options.outputsNames?.startLogits ?? MODEL_DEFAULTS.outputsNames.startLogits
+          options.outputsNames?.startLogits ?? defaults.outputsNames.startLogits
       },
       path: options.path,
-      signatureName: options.signatureName ?? MODEL_DEFAULTS.signatureName
+      signatureName: options.signatureName ?? defaults.signatureName
     };
 
     const signatureDef = graph.signatureDefs[partialParams.signatureName];
@@ -71,6 +73,52 @@ export abstract class Model {
       shape: shape as [number, number]
     };
   }
+}
+
+export function isOneDimensional(arr: number[] | number[][]): arr is number[] {
+  return !Array.isArray(arr[0]);
+}
+
+export interface ModelDefaults {
+  inputsNames: Required<ModelInputsNames>;
+  outputsNames: Required<ModelOutputNames>;
+  signatureName: string;
+}
+
+export interface ModelOptions {
+  /**
+   * @default false
+   */
+  cased?: boolean;
+  inputsNames?: ModelInputsNames;
+  outputsNames?: ModelOutputNames;
+  path: string;
+  /**
+   * @default "serving_default"
+   */
+  signatureName?: string;
+}
+
+export interface ModelInputsNames {
+  /**
+   * @default "inputs_ids"
+   */
+  ids?: string;
+  /**
+   * @default "attention_mask"
+   */
+  attentionMask?: string;
+}
+
+export interface ModelOutputNames {
+  /**
+   * @default "output_0"
+   */
+  startLogits?: string;
+  /**
+   * @default "output_1"
+   */
+  endLogits?: string;
 }
 
 export interface ModelParams {

@@ -14,15 +14,21 @@ const utils = require("./utils");
 const MODELS_PARAMS = {
   "distilbert-cased": {
     subDir: "distilbert-cased",
-    modelUrl:
-      "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-saved_model.tar.gz",
+    modelUrl: {
+      saved_model:
+        "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-saved_model.tar.gz",
+      tfjs:
+        "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-tfjs.tar.gz"
+    },
     vocabUrl:
       "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-cased-vocab.txt"
   },
   "distilbert-uncased": {
     subDir: "distilbert-uncased",
-    modelUrl:
-      "https://cdn.huggingface.co/distilbert-base-uncased-distilled-squad-384-saved_model.tar.gz",
+    modelUrl: {
+      saved_model:
+        "https://cdn.huggingface.co/distilbert-base-uncased-distilled-squad-384-saved_model.tar.gz"
+    },
     vocabUrl:
       "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt"
   }
@@ -51,6 +57,13 @@ yargs
           requiresArg: true,
           normalize: true
         })
+        .option("format", {
+          type: "string",
+          default: "saved_model",
+          options: ["saved_model", "tfjs"],
+          requiresArg: true,
+          description: "Format to download"
+        })
         .option("force", {
           type: "boolean",
           alias: "f",
@@ -65,13 +78,14 @@ yargs
 
 /**
  * Download a model with associated vocabulary
- * @param {yargs.Arguments<{ model: string, dir: string, force?: boolean }>} args
+ * @param {yargs.Arguments<{ model: string, dir: string, format?: "saved_model" | "tfjs", force?: boolean }>} args
  */
 async function downloadModel(args) {
   let modelParams = MODELS_PARAMS[args.model];
+  const modelFormat = args.format || "saved_model";
 
   if (!modelParams) {
-    const modelUrl = `https://cdn.huggingface.co/${args.model}/saved_model.tar.gz`;
+    const modelUrl = `https://cdn.huggingface.co/${args.model}/${modelFormat}.tar.gz`;
     const remoteModel = await fetch(modelUrl, { method: "HEAD" });
     if (!remoteModel.ok) {
       throw new Error("The requested model doesn't seem to exist");
@@ -79,15 +93,27 @@ async function downloadModel(args) {
 
     modelParams = {
       subDir: args.model,
+      modelFormat: modelFormat,
       modelUrl: modelUrl,
       vocabUrl: `https://cdn.huggingface.co/${args.model}/vocab.txt`
+    };
+  } else {
+    modelParams = {
+      subDir: modelParams.subDir,
+      modelFormat: modelFormat,
+      modelUrl: modelParams.modelUrl[modelFormat],
+      vocabUrl: modelParams.vocabUrl
     };
   }
 
   const assetsDir = path.join(ROOT_DIR, args.dir);
   await utils.ensureDir(assetsDir);
 
-  const modelDir = path.join(assetsDir, modelParams.subDir);
+  const modelDir = path.join(
+    assetsDir,
+    modelParams.subDir,
+    modelParams.modelFormat === "tfjs" ? "tfjs" : ""
+  );
   if (args.force) {
     shell.rm("-rf", modelDir);
   }
@@ -111,11 +137,13 @@ async function downloadModel(args) {
       });
     });
   } else {
-    shell.echo(`Model ${modelParams.subDir} already exists, doing nothing...`);
+    shell.echo(
+      `Model ${modelParams.subDir} (format: ${modelParams.modelFormat}) already exists, doing nothing...`
+    );
   }
 
-  const vocabFile = "vocab.txt";
-  if (!(await utils.exists(`${modelDir}/${vocabFile}`))) {
+  const vocabPath = path.join(assetsDir, modelParams.subDir, "vocab.txt");
+  if (!(await utils.exists(vocabPath))) {
     shell.echo("Downloading vocab file...");
 
     await new Promise((resolve, reject) => {
@@ -127,7 +155,7 @@ async function downloadModel(args) {
 
         res
           .on("data", chunk => bar.tick(chunk.length))
-          .pipe(fs.createWriteStream(`${modelDir}/${vocabFile}`))
+          .pipe(fs.createWriteStream(vocabPath))
           .on("close", resolve)
           .on("error", reject);
       });

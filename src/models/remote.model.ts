@@ -1,7 +1,12 @@
 import fetch from "node-fetch";
 
-import { Model, ModelParams, PartialMetaGraph, PartialModelTensorInfo } from "./model";
-import { ModelOptions } from "./qa-options";
+import {
+  Model,
+  ModelOptions,
+  ModelParams,
+  PartialMetaGraph,
+  PartialModelTensorInfo
+} from "./model";
 
 export class RemoteModel extends Model {
   private constructor(public params: ModelParams) {

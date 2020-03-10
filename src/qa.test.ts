@@ -1,6 +1,7 @@
 import { BertWordPieceTokenizer } from "tokenizers";
 import { mocked } from "ts-jest";
 
+import { TFJSModel } from "./models";
 import { QAClient } from "./qa";
 
 const basicQuestion = "Who won the Super Bowl?";
@@ -12,13 +13,6 @@ const basicContext = `
 
 describe("QAClient", () => {
   describe("fromOptions", () => {
-    it("instantiates a QAClient with a partial path for the model", async () => {
-      const qaClient = await QAClient.fromOptions({
-        model: { path: "distilbert-cased" }
-      });
-      expect(qaClient).toBeDefined();
-    });
-
     it("instantiates a QAClient with custom tokenizer when provided", async () => {
       const tokenizer = jest.fn();
       const qaClient = await QAClient.fromOptions({
@@ -43,33 +37,25 @@ describe("QAClient", () => {
   describe("predict", () => {
     let qa: QAClient;
 
-    beforeEach(async () => {
-      qa = await QAClient.fromOptions();
-    });
-
-    it("gives the correct answer with short contexts", async () => {
-      const contexts = [
-        `
+    const shorts = [
+      {
+        context: `
           Super Bowl 50 was an American football game to determine the champion of the National Football League (NFL) for the 2015 season.
           The American Football Conference (AFC) champion Denver Broncos defeated the National Football Conference (NFC) champion Carolina Panthers 24–10 to earn their third Super Bowl title. The game was played on February 7, 2016, at Levi's Stadium in the San Francisco Bay Area at Santa Clara, California.
           As this was the 50th Super Bowl, the league emphasized the "golden anniversary" with various gold-themed initiatives, as well as temporarily suspending the tradition of naming each Super Bowl game with Roman numerals (under which the game would have been known as "Super Bowl L"), so that the logo could prominently feature the Arabic numerals 50.
         `,
-        `
+        question: ["Who won the Super Bowl?", "Denver Broncos"]
+      },
+      {
+        context: `
           One of the most famous people born in Warsaw was Maria Skłodowska-Curie, who achieved international recognition for her research on radioactivity and was the first female recipient of the Nobel Prize. Famous musicians include Władysław Szpilman and Frédéric Chopin. Though Chopin was born in the village of Żelazowa Wola, about 60 km (37 mi) from Warsaw, he moved to the city with his family when he was seven months old. Casimir Pulaski, a Polish general and hero of the American Revolutionary War, was born here in 1745.
-        `
-      ];
+        `,
+        question: ["Where was Chopin born?", "Żelazowa Wola"]
+      }
+    ];
 
-      const queries = ["Who won the Super Bowl?", "Where was Chopin born?"];
-
-      const predOne = await qa.predict(queries[0], contexts[0]);
-      expect(predOne?.text).toEqual("Denver Broncos");
-
-      const predTwo = await qa.predict(queries[1], contexts[1]);
-      expect(predTwo?.text).toEqual("Żelazowa Wola");
-    });
-
-    it("gives the correct answer with long contexts", async () => {
-      const context = `
+    const long = {
+      context: `
         At his father's death on 16 September 1380, Charles VI inherited the throne of France. His coronation took place on 4 November 1380, at Reims Cathedral. Charles VI was only 11 years old when he was crowned King of France. During his minority, France was ruled by Charles' uncles, as regents. Although the royal age of majority was 14 (the "age of accountability" under Roman Catholic canon law), Charles terminated the regency only at the age of 21.
 
         The regents were Philip the Bold, Duke of Burgundy, Louis I, Duke of Anjou, and John, Duke of Berry – all brothers of Charles V – along with Louis II, Duke of Bourbon, Charles VI's maternal uncle. Philip took the dominant role during the regency. Louis of Anjou was fighting for his claim to the Kingdom of Naples after 1382, dying in 1384; John of Berry was interested mainly in the Languedoc, and not particularly interested in politics; and Louis of Bourbon was a largely unimportant figure, owing to his personality (showing signs of mental instability) and status (since he was not the son of a king).
@@ -85,19 +71,52 @@ describe("QAClient", () => {
         Isabeau's eighth child, Louis, was born in 1397, and was also Dauphin. He married Margaret of Burgundy, who had previously been betrothed to his brother Charles. The marriage produced no children by the time of Louis's death in 1415, aged 18.
 
         Isabeau's ninth child, John, was born in 1398, and was also Dauphin from 1415, after the death of his brother Louis. He was married to Jacqueline, Countess of Hainaut in 1415, then aged 17, but they did not have any children before he died in 1417, aged 19. Isabeau's tenth child, Catherine, was born in 1401. She was married firstly to Henry V, King of England in 1420, and they had one child, who became Henry VI of England. Henry V died suddenly in 1422. Catherine may then have secretly married Owen Tudor in 1429 and had additional children, including Edmund Tudor, the father of Henry VII. She died in 1437, aged 36.
-      `;
+      `,
+      questions: [
+        ["When did his father die?", "16 September 1380"],
+        ["Who did Charles VI marry?", "Isabeau of Bavaria"],
+        ["What was the name of Isabeau's eighth child?", "Louis"]
+      ]
+    };
 
-      const predOne = await qa.predict("When did his father die?", context);
-      expect(predOne?.text).toEqual("16 September 1380");
+    describe("using SavedModel format", () => {
+      beforeEach(async () => {
+        qa = await QAClient.fromOptions();
+      });
 
-      const predTwo = await qa.predict("Who did Charles VI marry?", context);
-      expect(predTwo?.text).toEqual("Isabeau of Bavaria");
+      it.each(shorts)("gives the correct answer with short contexts", async short => {
+        const predOne = await qa.predict(short.question[0], short.context);
+        expect(predOne?.text).toEqual(short.question[1]);
+      });
 
-      const predThree = await qa.predict(
-        "What was the name of Isabeau's eighth child?",
-        context
-      );
-      expect(predThree?.text).toEqual("Louis");
+      for (const question of long.questions) {
+        it("gives the correct answer with long contexts", async () => {
+          const predOne = await qa.predict(question[0], long.context);
+          expect(predOne?.text).toEqual(question[1]);
+        });
+      }
+    });
+
+    describe("using TFJS format", () => {
+      beforeEach(async () => {
+        const model = await TFJSModel.fromOptions({
+          path: "distilbert-cased",
+          cased: true
+        });
+        qa = await QAClient.fromOptions({ model });
+      });
+
+      it.each(shorts)("gives the correct answer with short contexts", async short => {
+        const predOne = await qa.predict(short.question[0], short.context);
+        expect(predOne?.text).toEqual(short.question[1]);
+      });
+
+      for (const question of long.questions) {
+        it("gives the correct answer with long contexts", async () => {
+          const predOne = await qa.predict(question[0], long.context);
+          expect(predOne?.text).toEqual(question[1]);
+        });
+      }
     });
   });
 });
