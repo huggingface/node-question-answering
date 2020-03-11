@@ -40,10 +40,48 @@ console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 
 ## Advanced
 
-<a name="remote-model"></a>
-### Using a remote model with [TensorFlow Serving](https://www.tensorflow.org/tfx/guide/serving)
+### Using another model
 
-You may prefer to host your model on a dedicated server. It's possible by simply passing the server endpoint as the `path` option and `remote` to `true`. Here is a simple example using [Docker](https://www.tensorflow.org/tfx/serving/docker) locally:
+The above example internally makes use of a DistilBERT-cased model in the SavedModel format. You can choose to use any other DistilBERT-like model, either in SavedModel format or TFJS format.
+
+_Note that using a model [hosted on Hugging Face](https://huggingface.co/models) is not a requirement: you can use any compatible model by passing the correct local path for the model and vocabulary, and skip the download step. In this case, you'll also need to provide a `vocabPath` when creating the `QAClient`._
+
+#### SavedModel format
+
+Download the model (here using DistilBERT-uncased fine-tuned on SQuAD):
+```bash
+npx question-answering download distilbert-uncased --format saved_model
+```
+
+> The `--format saved_model` is optional in this case, since the SavedModel format is the default.
+
+> Any community model can be downloaded by specifying a `user/model` path instead of `distilbert-uncased`, as long as it exists a `saved_model.tar.gz` file for this model (containing the SavedModel version).
+
+You can then create a `SavedModel` instance corresponding to the downloaded model, before passing it to `QAClient`:
+```typescript
+const model = await SavedModel.fromOptions({ path: "distilbert-uncased", cased: false });
+const qaClient = await QAClient.fromOptions({ model });
+```
+
+#### TFJS format
+
+Download the model (here the TFJS version of DistilBERT-cased fine-tuned on SQuAD):
+```bash
+npx question-answering download distilbert-cased --format tfjs
+```
+
+> Any community model can be downloaded by specifying a `user/model` path instead of `distilbert-cased`, as long as a `tfjs.tar.gz` file (containing the TFJS version) exists for this model
+
+Then instantiate a `TFJSModel` and use it with `QAClient`:
+```typescript
+const model = await TFJSModel.fromOptions({ path: "distilbert-cased", cased: true });
+const qaClient = await QAClient.fromOptions({ model });
+```
+
+<a name="remote-model"></a>
+### Using [TensorFlow Serving](https://www.tensorflow.org/tfx/guide/serving)
+
+If your model is in the SavedModel format, you may prefer to host it on a dedicated server. It's possible by instantiating a `RemoteModel` by using the `fromOptions` methods and passing it the server endpoint as `path`. Here is a simple example using [Docker](https://www.tensorflow.org/tfx/serving/docker) locally:
 
 ```bash
 # Inside our project root, download DistilBERT-cased to its default `.models` location
@@ -61,33 +99,14 @@ docker run -t --rm -p 8501:8501 \
     tensorflow/serving &
 ```
 
-Then in your code:
+In your code:
 
 ```typescript
-const qaClient = await QAClient.fromOptions({
-  model: { path: "http://localhost:8501/v1/models/cased", cased: true, remote: true }
-});
+const remoteModel = await RemoteModel.fromOptions(
+  { path: "http://localhost:8501/v1/models/cased", cased: true }
+);
+const qaClient = await QAClient.fromOptions({ model: remoteModel });
 ```
-
-
-### Using a different model
-
-You can choose to use the uncased version of DistilBERT instead.
-
-First, download the uncased model:
-```bash
-npx question-answering download distilbert-uncased
-```
-
-You can then instantiate a `QAClient` by specifying some options:
-```typescript
-const qaClient = await QAClient.fromOptions({
-  model: { path: "./.models/distilbert-uncased", cased: false },
-  vocabPath: "./.models/distilbert-uncased/vocab.txt"
-});
-```
-
-You can also choose to use a custom model and pass it to `QAClient.fromOptions`, the same way than for DistilBERT-uncased. Check the [`QAOptions`](src/qa-options.ts) interface for the complete list of options. And you can still [host it remotely](#remote-model).
 
 ### Using a custom tokenizer
 
@@ -95,9 +114,9 @@ You can provide your own tokenizer instance to `QAClient.fromOptions`, as long a
 
 ## Performances
 
-Thanks to [the native execution of SavedModel format](https://groups.google.com/a/tensorflow.org/d/msg/tfjs/Xtf6s1Bpkr0/7-Eqn8soAwAJ) in TFJS, the performance of such models is similar to the one using TensorFlow in Python. 
+Thanks to [the native execution of SavedModel format](https://groups.google.com/a/tensorflow.org/d/msg/tfjs/Xtf6s1Bpkr0/7-Eqn8soAwAJ) in TFJS, the performance of such models is similar to the one using TensorFlow in Python.
 
-Specifically, here are the results of a benchmark using `question-answering` completely locally, with a (pseudo-)remote model server (i.e. local Docker), and using the Question Answering pipeline in the [`transformers`](https://github.com/huggingface/transformers) library.
+Specifically, here are the results of a benchmark using `question-answering` entirely locally (both SavedModel and TFJS formats), using a (pseudo) remote model server (i.e. local Docker), and using the Question Answering pipeline in the [`transformers`](https://github.com/huggingface/transformers) library.
 
 ![QA benchmark chart](https://docs.google.com/spreadsheets/d/e/2PACX-1vRCprbDB9T8nwdOpRv2pmlOXWKw3vVOx5P2jbn7hipjCyaGRuQS3u5KWpE7ux5Q0jbqT9HFVMivkI4x/pubchart?oid=2051609279&format=image)
 _Shorts texts are texts between 500 and 1000 characters, long texts are between 4000 and 5000 characters. You can check the `question-answering` benchmark script [here](./scripts/benchmark.js) (the `transformers` one is equivalent). Benchmark run on a standard 2019 MacBook Pro running on macOS 10.15.2._
