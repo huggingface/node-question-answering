@@ -22,7 +22,8 @@ npx question-answering download
 > By default, the model and vocabulary are downloaded inside a `.models` directory at the root of your project; you can provide a custom directory by using the `--dir` option of the CLI.
 
 ```typescript
-import { QAClient } from "question-answering";
+import { QAClient } from "question-answering"; // If using Typescript or Babel
+// const { QAClient } = require("question-answering"); // If using vanilla JS
 
 const text = `
   Super Bowl 50 was an American football game to determine the champion of the National Football League (NFL) for the 2015 season.
