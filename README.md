@@ -9,7 +9,7 @@ This package leverages the power of the [tokenizers](https://github.com/huggingf
 ## Installation
 
 ```bash
-npm install question-answering
+npm install question-answering@latest
 ```
 
 ## Simple example
