@@ -4,13 +4,14 @@ import {
   Model,
   ModelOptions,
   ModelParams,
+  ModelType,
   PartialMetaGraph,
   PartialModelTensorInfo
 } from "./model";
 
 export class RemoteModel extends Model {
-  private constructor(public params: ModelParams) {
-    super();
+  private constructor(public params: ModelParams, type: ModelType) {
+    super(type);
   }
 
   async runInference(
@@ -41,7 +42,8 @@ export class RemoteModel extends Model {
     const modelGraph = await this.getRemoteMetaGraph(options.path);
     const fullParams = this.computeParams(options, modelGraph);
 
-    return new RemoteModel(fullParams);
+    const modelType = this.getModelType(options);
+    return new RemoteModel(fullParams, modelType);
   }
 
   private static async getRemoteMetaGraph(url: string): Promise<PartialMetaGraph> {
