@@ -1,26 +1,17 @@
-import { exists as fsExists } from "fs";
-import path from "path";
-import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
-import { promisify } from "util";
+import { Encoding, slice, TruncationStrategy } from "tokenizers";
 
-import { Model } from "./models/model";
+import { Model, ModelType } from "./models/model";
 import { SavedModel } from "./models/saved-model.model";
-import {
-  DEFAULT_ASSETS_PATH,
-  DEFAULT_MODEL_PATH,
-  DEFAULT_VOCAB_PATH,
-  QAOptions
-} from "./qa-options";
+import { DEFAULT_MODEL_PATH, QAOptions } from "./qa-options";
+import { DistilbertTokenizer, RobertaTokenizer, Tokenizer } from "./tokenizers";
 
 interface Feature {
-  contextLength: number;
   contextStartIndex: number;
   encoding: Encoding;
   maxContextMap: ReadonlyMap<number, boolean>;
 }
 
 interface Span {
-  contextLength: number;
   length: number;
   startIndex: number;
 }
@@ -47,7 +38,7 @@ export interface Answer {
 export class QAClient {
   private constructor(
     private readonly model: Model,
-    private readonly tokenizer: BertWordPieceTokenizer,
+    private readonly tokenizer: Tokenizer,
     private readonly timeIt?: boolean
   ) {}
 
@@ -56,30 +47,25 @@ export class QAClient {
       options?.model ??
       (await SavedModel.fromOptions({ path: DEFAULT_MODEL_PATH, cased: true }));
 
-    let tokenizer: BertWordPieceTokenizer;
-    if (options?.tokenizer) {
-      tokenizer = options.tokenizer;
-    } else {
-      let vocabPath = options?.vocabPath;
-      if (!vocabPath) {
-        if (options?.model?.params.path) {
-          const existsAsync = promisify(fsExists);
-          const fullPath = (await existsAsync(options.model.params.path))
-            ? path.join(options.model.params.path, "vocab.txt")
-            : path.join(DEFAULT_ASSETS_PATH, options.model.params.path, "vocab.txt");
-
-          if (await existsAsync(fullPath)) {
-            vocabPath = fullPath;
-          }
-        }
-
-        vocabPath = vocabPath ?? DEFAULT_VOCAB_PATH;
-      }
-
-      tokenizer = await BertWordPieceTokenizer.fromOptions({
-        vocabFile: vocabPath,
+    let tokenizer = options?.tokenizer;
+    if (!tokenizer) {
+      const tokenizerOptions = {
+        modelPath: model.params.path,
+        modelType: model.type,
+        mergesPath: options?.mergesPath,
+        vocabPath: options?.vocabPath,
         lowercase: !model.params.cased
-      });
+      };
+
+      switch (model.type) {
+        case ModelType.Distilbert:
+          tokenizer = await DistilbertTokenizer.fromOptions(tokenizerOptions);
+          break;
+
+        case ModelType.Roberta:
+          tokenizer = await RobertaTokenizer.fromOptions(tokenizerOptions);
+          break;
+      }
     }
 
     return new QAClient(model, tokenizer, options?.timeIt);
@@ -135,26 +121,16 @@ export class QAClient {
     const encoding = await this.tokenizer.encode(question, context);
     const encodings = [encoding, ...encoding.overflowing];
 
-    const questionLength =
-      encoding.tokens.indexOf(this.tokenizer.configuration.sepToken) - 1; // Take [CLS] into account
-    const contextStartIndex = questionLength + 2;
+    const spans: Span[] = encodings.map((e, i) => ({
+      startIndex: (inputLength - stride) * i,
+      length: inputLength
+    }));
 
-    const spans: Span[] = encodings.map((e, i) => {
-      const nbAddedTokens = e.specialTokensMask.reduce((acc, val) => acc + val, 0);
-      const actualLength = inputLength - nbAddedTokens;
-
-      return {
-        startIndex: (inputLength - stride) * i,
-        contextLength: actualLength - questionLength,
-        length: inputLength
-      };
-    });
-
+    const contextStartIndex = this.tokenizer.getContextStartIndex(encoding);
     return spans.map<Feature>((s, i) => {
       const maxContextMap = getMaxContextMap(spans, i, contextStartIndex);
 
       return {
-        contextLength: s.contextLength,
         contextStartIndex,
         encoding: encodings[i],
         maxContextMap: maxContextMap
@@ -183,7 +159,7 @@ export class QAClient {
       const starts = startLogits[i];
       const ends = endLogits[i];
 
-      const contextLastIndex = feature.contextStartIndex + feature.contextLength - 1;
+      const contextLastIndex = this.tokenizer.getContextEndIndex(feature.encoding);
       const [filteredStartLogits, filteredEndLogits] = [starts, ends].map(logits =>
         logits
           .slice(feature.contextStartIndex, contextLastIndex)
