@@ -21,7 +21,6 @@ interface Feature {
 
 interface Span {
   contextLength: number;
-  contextStartIndex: number;
   length: number;
   startIndex: number;
 }
@@ -101,9 +100,15 @@ export class QAClient {
     );
     const elapsedInferenceTime = Date.now() - inferenceStartTime;
 
-    const answer = this.getAnswer(features, startLogits, endLogits, maxAnswerLength);
-    const totalElapsedTime = Date.now() - totalStartTime;
+    const answer = this.getAnswer(
+      context,
+      features,
+      startLogits,
+      endLogits,
+      maxAnswerLength
+    );
 
+    const totalElapsedTime = Date.now() - totalStartTime;
     if (this.timeIt) {
       return {
         ...answer,
@@ -120,8 +125,9 @@ export class QAClient {
     context: string,
     stride = 128
   ): Promise<Feature[]> {
-    this.tokenizer.setPadding({ maxLength: this.model.params.shape[1] });
-    this.tokenizer.setTruncation(this.model.params.shape[1], {
+    const inputLength = this.model.params.shape[1];
+    this.tokenizer.setPadding(inputLength);
+    this.tokenizer.setTruncation(inputLength, {
       strategy: TruncationStrategy.OnlySecond,
       stride
     });
@@ -131,26 +137,25 @@ export class QAClient {
 
     const questionLength =
       encoding.tokens.indexOf(this.tokenizer.configuration.sepToken) - 1; // Take [CLS] into account
-    const questionLengthWithTokens = questionLength + 2;
+    const contextStartIndex = questionLength + 2;
 
     const spans: Span[] = encodings.map((e, i) => {
       const nbAddedTokens = e.specialTokensMask.reduce((acc, val) => acc + val, 0);
-      const actualLength = e.length - nbAddedTokens;
+      const actualLength = inputLength - nbAddedTokens;
 
       return {
-        startIndex: i * stride,
-        contextStartIndex: questionLengthWithTokens,
+        startIndex: (inputLength - stride) * i,
         contextLength: actualLength - questionLength,
-        length: actualLength
+        length: inputLength
       };
     });
 
     return spans.map<Feature>((s, i) => {
-      const maxContextMap = getMaxContextMap(spans, i, stride, questionLengthWithTokens);
+      const maxContextMap = getMaxContextMap(spans, i, contextStartIndex);
 
       return {
         contextLength: s.contextLength,
-        contextStartIndex: s.contextStartIndex,
+        contextStartIndex,
         encoding: encodings[i],
         maxContextMap: maxContextMap
       };
@@ -158,6 +163,7 @@ export class QAClient {
   }
 
   private getAnswer(
+    context: string,
     features: Feature[],
     startLogits: number[][],
     endLogits: number[][],
@@ -229,7 +235,7 @@ export class QAClient {
     const probScore = startProbs[answer.startIndex] * endProbs[answer.endIndex];
 
     return {
-      text: answerText,
+      text: answerText.trim(),
       score: Math.round((probScore + Number.EPSILON) * 100) / 100
     };
   }
@@ -238,15 +244,14 @@ export class QAClient {
 function getMaxContextMap(
   spans: Span[],
   spanIndex: number,
-  stride: number,
-  questionLengthWithTokens: number
+  contextStartIndex: number
 ): Map<number, boolean> {
   const map = new Map<number, boolean>();
   const spanLength = spans[spanIndex].length;
 
   let i = 0;
   while (i < spanLength) {
-    const position = spanIndex * stride + i;
+    const position = spans[spanIndex].startIndex + i;
     let bestScore = -1;
     let bestIndex = -1;
 
@@ -265,7 +270,7 @@ function getMaxContextMap(
       }
     }
 
-    map.set(questionLengthWithTokens + i, bestIndex === spanIndex);
+    map.set(contextStartIndex + i, bestIndex === spanIndex);
     i++;
   }
 
