@@ -5,11 +5,15 @@ import * as path from "path";
 import { promisify } from "util";
 
 import { DEFAULT_ASSETS_PATH } from "../qa-options";
-import { isOneDimensional, Model, ModelOptions, ModelParams } from "./model";
+import { isOneDimensional, Model, ModelOptions, ModelParams, ModelType } from "./model";
 
 export class SavedModel extends Model {
-  private constructor(private model: TFSavedModel, public params: ModelParams) {
-    super();
+  private constructor(
+    private model: TFSavedModel,
+    type: ModelType,
+    public params: ModelParams
+  ) {
+    super(type);
   }
 
   async runInference(
@@ -53,10 +57,12 @@ export class SavedModel extends Model {
       ? options.path
       : path.join(DEFAULT_ASSETS_PATH, options.path);
 
+    // console.log(options.path);
+    const modelType = this.getModelType(options);
     const modelGraph = (await tf.node.getMetaGraphsFromSavedModel(options.path))[0];
     const fullParams = this.computeParams(options, modelGraph);
 
     const model = await tf.node.loadSavedModel(fullParams.path);
-    return new SavedModel(model, fullParams);
+    return new SavedModel(model, modelType, fullParams);
   }
 }

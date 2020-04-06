@@ -10,8 +10,20 @@ const MODEL_DEFAULTS: ModelDefaults = {
   signatureName: "serving_default"
 };
 
+export enum ModelType {
+  Distilbert = "distilbert",
+  Roberta = "roberta"
+}
+
+export const MODEL_MAPPING: { [key: string]: ModelType } = {
+  distilbert: ModelType.Distilbert,
+  roberta: ModelType.Roberta
+};
+
 export abstract class Model {
   abstract params: Readonly<ModelParams>;
+
+  constructor(public readonly type: ModelType) {}
 
   protected static get defaults(): Readonly<ModelDefaults> {
     return MODEL_DEFAULTS;
@@ -73,6 +85,28 @@ export abstract class Model {
       shape: shape as [number, number]
     };
   }
+
+  /**
+   * Infer model type from model path
+   * @param options Model options
+   * @throws If no model type inferred
+   */
+  protected static getModelType(options: ModelOptions): ModelType {
+    if (options.type) {
+      return options.type;
+    }
+
+    const types = Object.entries(ModelType);
+    for (const [name, type] of types) {
+      if (options.path.toLowerCase().includes(name.toLowerCase())) {
+        return type;
+      }
+    }
+
+    throw new Error(
+      "Impossible to determine the type of the model. You can specify it manually by providing the `type` in the  options"
+    );
+  }
 }
 
 export function isOneDimensional(arr: number[] | number[][]): arr is number[] {
@@ -91,6 +125,7 @@ export interface ModelOptions {
    */
   cased?: boolean;
   inputsNames?: ModelInputsNames;
+  type?: ModelType;
   outputsNames?: ModelOutputNames;
   path: string;
   /**

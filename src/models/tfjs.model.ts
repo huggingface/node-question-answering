@@ -10,12 +10,17 @@ import {
   ModelDefaults,
   ModelOptions,
   ModelParams,
+  ModelType,
   PartialMetaGraph
 } from "./model";
 
 export class TFJSModel extends Model {
-  private constructor(private model: tf.GraphModel, public params: ModelParams) {
-    super();
+  private constructor(
+    private model: tf.GraphModel,
+    type: ModelType,
+    public params: ModelParams
+  ) {
+    super(type);
   }
 
   protected static get defaults(): Readonly<ModelDefaults> {
@@ -65,6 +70,8 @@ export class TFJSModel extends Model {
       ? options.path
       : path.join(DEFAULT_ASSETS_PATH, options.path, "tfjs");
 
+    const modelType = this.getModelType(options);
+
     const model = await tf.loadGraphModel(`file:///${options.path}/model.json`);
     const modelGraph: PartialMetaGraph = {
       signatureDefs: {
@@ -79,6 +86,6 @@ export class TFJSModel extends Model {
     };
 
     const fullParams = this.computeParams(options, modelGraph);
-    return new TFJSModel(model, fullParams);
+    return new TFJSModel(model, modelType, fullParams);
   }
 }
