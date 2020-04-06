@@ -225,7 +225,9 @@ export class QAClient {
 
     const answer = answers.sort((a, b) => b.score - a.score)[0];
     const offsets = answer.feature.encoding.offsets;
-    const answerText = features[0].encoding.getOriginalString(
+
+    const answerText = slice(
+      context,
       offsets[answer.startIndex][0],
       offsets[answer.endIndex][1]
     );
