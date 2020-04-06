@@ -1,8 +1,8 @@
-import { BertWordPieceTokenizer } from "tokenizers";
 import { mocked } from "ts-jest";
 
 import { TFJSModel } from "./models";
 import { QAClient } from "./qa";
+import { Tokenizer } from "./tokenizers";
 
 const basicQuestion = "Who won the Super Bowl?";
 const basicContext = `
@@ -16,8 +16,9 @@ describe("QAClient", () => {
     it("instantiates a QAClient with custom tokenizer when provided", async () => {
       const tokenizer = jest.fn();
       const qaClient = await QAClient.fromOptions({
-        tokenizer: (tokenizer as unknown) as BertWordPieceTokenizer
+        tokenizer: (tokenizer as unknown) as Tokenizer
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((qaClient as any).tokenizer).toBe(tokenizer);
     });
 
@@ -75,7 +76,7 @@ describe("QAClient", () => {
       questions: [
         ["When did his father die?", "16 September 1380"],
         ["Who did Charles VI marry?", "Isabeau of Bavaria"],
-        ["What was the name of Isabeau's eighth child?", "Louis"]
+        ["What was the name of Isabeau's tenth child?", "Catherine"]
       ]
     };
 
