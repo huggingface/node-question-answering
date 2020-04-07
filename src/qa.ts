@@ -164,7 +164,7 @@ export class QAClient {
       const contextLastIndex = this.tokenizer.getContextEndIndex(feature.encoding);
       const [filteredStartLogits, filteredEndLogits] = [starts, ends].map(logits =>
         logits
-          .slice(feature.contextStartIndex, contextLastIndex)
+          .slice(feature.contextStartIndex, contextLastIndex + 1)
           .map<[number, number]>((val, i) => [i + feature.contextStartIndex, val])
       );
 
