@@ -1,7 +1,8 @@
 import { mocked } from "ts-jest";
 
-import { TFJSModel } from "./models";
+import { initModel } from "./models";
 import { QAClient } from "./qa";
+import { RuntimeType } from "./runtimes";
 import { Tokenizer } from "./tokenizers";
 
 const basicQuestion = "Who won the Super Bowl?";
@@ -100,10 +101,12 @@ describe("QAClient", () => {
 
     describe("using TFJS format", () => {
       beforeEach(async () => {
-        const model = await TFJSModel.fromOptions({
+        const model = await initModel({
           path: "distilbert-cased",
-          cased: true
+          cased: true,
+          runtime: RuntimeType.TFJS
         });
+
         qa = await QAClient.fromOptions({ model });
       });
 

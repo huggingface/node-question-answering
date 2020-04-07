@@ -1,122 +1,31 @@
-const MODEL_DEFAULTS: ModelDefaults = {
-  inputsNames: {
-    attentionMask: "attention_mask",
-    ids: "input_ids"
-  },
-  outputsNames: {
-    endLogits: "output_1",
-    startLogits: "output_0"
-  },
-  signatureName: "serving_default"
-};
+import { Encoding } from "tokenizers";
+
+import { Runtime, RuntimeType } from "../runtimes/runtime";
+
+export enum ModelInput {
+  AttentionMask = "attentionMask",
+  Ids = "inputIds",
+  TokenTypeIds = "tokenTypeIds"
+}
 
 export enum ModelType {
   Distilbert = "distilbert",
   Roberta = "roberta"
 }
 
-export const MODEL_MAPPING: { [key: string]: ModelType } = {
-  distilbert: ModelType.Distilbert,
-  roberta: ModelType.Roberta
-};
-
 export abstract class Model {
-  abstract params: Readonly<ModelParams>;
+  public readonly cased: boolean;
+  public readonly inputLength: number;
+  public readonly path: string;
+  public abstract readonly type: ModelType;
 
-  constructor(public readonly type: ModelType) {}
-
-  protected static get defaults(): Readonly<ModelDefaults> {
-    return MODEL_DEFAULTS;
+  constructor(protected runtime: Runtime, cased?: boolean) {
+    this.cased = !!cased;
+    this.inputLength = runtime.params.shape[1];
+    this.path = runtime.params.path;
   }
 
-  abstract runInference(
-    ids: number[][],
-    attentionMask: number[][]
-  ): Promise<[number[][], number[][]]>;
-
-  protected static computeParams(
-    options: ModelOptions,
-    graph: PartialMetaGraph,
-    defaults: Readonly<ModelDefaults> = this.defaults
-  ): ModelParams {
-    const partialParams: Omit<ModelParams, "shape"> = {
-      cased: options.cased ?? false,
-      inputsNames: {
-        attentionMask:
-          options.inputsNames?.attentionMask ?? defaults.inputsNames.attentionMask,
-        ids: options.inputsNames?.ids ?? defaults.inputsNames.ids
-      },
-      outputsNames: {
-        endLogits: options.outputsNames?.endLogits ?? defaults.outputsNames.endLogits,
-        startLogits:
-          options.outputsNames?.startLogits ?? defaults.outputsNames.startLogits
-      },
-      path: options.path,
-      signatureName: options.signatureName ?? defaults.signatureName
-    };
-
-    const signatureDef = graph.signatureDefs[partialParams.signatureName];
-    if (!signatureDef) {
-      throw new Error(`No signature matching name "${partialParams.signatureName}"`);
-    }
-
-    for (const inputName of Object.values(partialParams.inputsNames)) {
-      if (!signatureDef.inputs[inputName]) {
-        throw new Error(`No input matching name "${inputName}"`);
-      }
-    }
-
-    for (const outputName of Object.values(partialParams.outputsNames)) {
-      if (!signatureDef.outputs[outputName]) {
-        throw new Error(`No output matching name "${outputName}"`);
-      }
-    }
-
-    const rawShape = signatureDef.inputs[partialParams.inputsNames.ids!].shape as
-      | number[]
-      | { array: [number] }[];
-    const shape =
-      typeof rawShape[0] === "number"
-        ? rawShape
-        : (rawShape as { array: [number] }[]).map(s => s.array[0]);
-
-    return {
-      ...partialParams,
-      shape: shape as [number, number]
-    };
-  }
-
-  /**
-   * Infer model type from model path
-   * @param options Model options
-   * @throws If no model type inferred
-   */
-  protected static getModelType(options: ModelOptions): ModelType {
-    if (options.type) {
-      return options.type;
-    }
-
-    const types = Object.entries(ModelType);
-    for (const [name, type] of types) {
-      if (options.path.toLowerCase().includes(name.toLowerCase())) {
-        return type;
-      }
-    }
-
-    throw new Error(
-      "Impossible to determine the type of the model. You can specify it manually by providing the `type` in the  options"
-    );
-  }
-}
-
-export function isOneDimensional(arr: number[] | number[][]): arr is number[] {
-  return !Array.isArray(arr[0]);
-}
-
-export interface ModelDefaults {
-  inputsNames: Required<ModelInputsNames>;
-  outputsNames: Required<ModelOutputNames>;
-  signatureName: string;
+  abstract runInference(encodings: Encoding[]): Promise<[number[][], number[][]]>;
 }
 
 export interface ModelOptions {
@@ -128,6 +37,7 @@ export interface ModelOptions {
   type?: ModelType;
   outputsNames?: ModelOutputNames;
   path: string;
+  runtime?: RuntimeType;
   /**
    * @default "serving_default"
    */
@@ -138,11 +48,15 @@ export interface ModelInputsNames {
   /**
    * @default "inputs_ids"
    */
-  ids?: string;
+  [ModelInput.Ids]?: string;
   /**
    * @default "attention_mask"
    */
-  attentionMask?: string;
+  [ModelInput.AttentionMask]?: string;
+  /**
+   * @default "token_type_ids"
+   */
+  [ModelInput.TokenTypeIds]?: string;
 }
 
 export interface ModelOutputNames {
@@ -154,30 +68,4 @@ export interface ModelOutputNames {
    * @default "output_1"
    */
   endLogits?: string;
-}
-
-export interface ModelParams {
-  cased?: boolean;
-  inputsNames: Required<ModelInputsNames>;
-  outputsNames: Required<ModelOutputNames>;
-  path: string;
-  shape: [number, number];
-  signatureName: string;
-}
-
-export interface PartialMetaGraph {
-  signatureDefs: {
-    [key: string]: {
-      inputs: {
-        [key: string]: PartialModelTensorInfo;
-      };
-      outputs: {
-        [key: string]: {};
-      };
-    };
-  };
-}
-
-export interface PartialModelTensorInfo {
-  shape?: number[];
 }

@@ -1,9 +1,9 @@
 import { Encoding, slice, TruncationStrategy } from "tokenizers";
 
 import { Model, ModelType } from "./models/model";
-import { SavedModel } from "./models/saved-model.model";
+import { initModel } from "./models/model.factory";
 import { DEFAULT_MODEL_PATH, QAOptions } from "./qa-options";
-import { DistilbertTokenizer, RobertaTokenizer, Tokenizer } from "./tokenizers";
+import { BertTokenizer, RobertaTokenizer, Tokenizer } from "./tokenizers";
 
 interface Feature {
   contextStartIndex: number;
@@ -44,26 +44,25 @@ export class QAClient {
 
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
     const model =
-      options?.model ??
-      (await SavedModel.fromOptions({ path: DEFAULT_MODEL_PATH, cased: true }));
+      options?.model ?? (await initModel({ path: DEFAULT_MODEL_PATH, cased: true }));
 
     let tokenizer = options?.tokenizer;
     if (!tokenizer) {
       const tokenizerOptions = {
-        modelPath: model.params.path,
+        modelPath: model.path,
         modelType: model.type,
         mergesPath: options?.mergesPath,
         vocabPath: options?.vocabPath,
-        lowercase: !model.params.cased
+        lowercase: !model.cased
       };
 
       switch (model.type) {
-        case ModelType.Distilbert:
-          tokenizer = await DistilbertTokenizer.fromOptions(tokenizerOptions);
-          break;
-
         case ModelType.Roberta:
           tokenizer = await RobertaTokenizer.fromOptions(tokenizerOptions);
+          break;
+
+        default:
+          tokenizer = await BertTokenizer.fromOptions(tokenizerOptions);
           break;
       }
     }
@@ -81,8 +80,7 @@ export class QAClient {
 
     const inferenceStartTime = Date.now();
     const [startLogits, endLogits] = await this.model.runInference(
-      features.map(f => f.encoding.ids),
-      features.map(f => f.encoding.attentionMask)
+      features.map(f => f.encoding)
     );
     const elapsedInferenceTime = Date.now() - inferenceStartTime;
 
@@ -111,9 +109,8 @@ export class QAClient {
     context: string,
     stride = 128
   ): Promise<Feature[]> {
-    const inputLength = this.model.params.shape[1];
-    this.tokenizer.setPadding(inputLength);
-    this.tokenizer.setTruncation(inputLength, {
+    this.tokenizer.setPadding(this.model.inputLength);
+    this.tokenizer.setTruncation(this.model.inputLength, {
       strategy: TruncationStrategy.OnlySecond,
       stride
     });
@@ -122,8 +119,8 @@ export class QAClient {
     const encodings = [encoding, ...encoding.overflowing];
 
     const spans: Span[] = encodings.map((e, i) => ({
-      startIndex: (inputLength - stride) * i,
-      length: inputLength
+      startIndex: (this.model.inputLength - stride) * i,
+      length: this.model.inputLength
     }));
 
     const contextStartIndex = this.tokenizer.getContextStartIndex(encoding);
