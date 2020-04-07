@@ -3,7 +3,7 @@ import { exists } from "fs";
 import * as path from "path";
 import { promisify } from "util";
 
-import { ModelInput } from "../models";
+import { Logits, ModelInput } from "../models/model";
 import { DEFAULT_ASSETS_PATH } from "../qa-options";
 import {
   FullParams,
@@ -33,7 +33,7 @@ export class TFJS extends Runtime {
     ids: number[][],
     attentionMask: number[][],
     tokenTypeIds?: number[][]
-  ): Promise<[number[][], number[][]]> {
+  ): Promise<[Logits, Logits]> {
     const result = tf.tidy(() => {
       const inputTensor = tf.tensor(ids, undefined, "int32");
       const maskTensor = tf.tensor(attentionMask, undefined, "int32");

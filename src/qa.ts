@@ -1,9 +1,14 @@
 import { Encoding, slice, TruncationStrategy } from "tokenizers";
 
-import { Model, ModelType } from "./models/model";
+import { Logits, Model, ModelType } from "./models/model";
 import { initModel } from "./models/model.factory";
 import { DEFAULT_MODEL_PATH, QAOptions } from "./qa-options";
-import { BertTokenizer, RobertaTokenizer, Tokenizer } from "./tokenizers";
+import {
+  BertTokenizer,
+  RobertaTokenizer,
+  Tokenizer,
+  TokenizerOptions
+} from "./tokenizers";
 
 interface Feature {
   contextStartIndex: number;
@@ -48,7 +53,7 @@ export class QAClient {
 
     let tokenizer = options?.tokenizer;
     if (!tokenizer) {
-      const tokenizerOptions = {
+      const tokenizerOptions: TokenizerOptions = {
         modelPath: model.path,
         modelType: model.type,
         mergesPath: options?.mergesPath,
@@ -138,8 +143,8 @@ export class QAClient {
   private getAnswer(
     context: string,
     features: Feature[],
-    startLogits: number[][],
-    endLogits: number[][],
+    startLogits: Logits,
+    endLogits: Logits,
     maxAnswerLength: number
   ): Answer | null {
     const answers: {

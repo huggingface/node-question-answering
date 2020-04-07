@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 
-import { ModelInput } from "../models";
+import { Logits, ModelInput } from "../models/model";
 import {
   FullParams,
   PartialMetaGraph,
@@ -18,7 +18,7 @@ export class Remote extends Runtime {
     ids: number[][],
     attentionMask: number[][],
     tokenTypeIds?: number[][]
-  ): Promise<[number[][], number[][]]> {
+  ): Promise<[Logits, Logits]> {
     const modelInputs = {
       [this.params.inputsNames[ModelInput.Ids]]: ids,
       [this.params.inputsNames[ModelInput.AttentionMask]]: attentionMask
@@ -39,10 +39,8 @@ export class Remote extends Runtime {
       })
     }).then(r => r.json());
 
-    const startLogits = result.outputs[
-      this.params.outputsNames.startLogits
-    ] as number[][];
-    const endLogits = result.outputs[this.params.outputsNames.endLogits] as number[][];
+    const startLogits = result.outputs[this.params.outputsNames.startLogits] as Logits;
+    const endLogits = result.outputs[this.params.outputsNames.endLogits] as Logits;
 
     return [startLogits, endLogits];
   }
