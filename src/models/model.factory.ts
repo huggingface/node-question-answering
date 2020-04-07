@@ -2,6 +2,7 @@ import { Remote } from "../runtimes/remote.runtime";
 import { Runtime, RuntimeOptions, RuntimeType } from "../runtimes/runtime";
 import { SavedModel } from "../runtimes/saved-model.runtime";
 import { TFJS } from "../runtimes/tfjs.runtime";
+import { BertModel } from "./bert.model";
 import { DistilbertModel } from "./distilbert.model";
 import { Model, ModelOptions, ModelType } from "./model";
 import { RobertaModel } from "./roberta.model";
@@ -9,10 +10,14 @@ import { RobertaModel } from "./roberta.model";
 export async function initModel(options: ModelOptions): Promise<Model> {
   const modelType = getModelType(options);
 
-  let ModelClass: typeof RobertaModel | DistilbertModel;
+  let ModelClass: typeof BertModel | typeof DistilbertModel | typeof RobertaModel;
   switch (modelType) {
     case ModelType.Roberta:
       ModelClass = RobertaModel;
+      break;
+
+    case ModelType.Bert:
+      ModelClass = BertModel;
       break;
 
     default:

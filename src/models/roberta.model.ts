@@ -8,7 +8,7 @@ export class RobertaModel extends Model {
     ModelInput.Ids
   ];
 
-  public type = ModelType.Roberta;
+  public readonly type = ModelType.Roberta;
 
   runInference(encodings: Encoding[]): Promise<[number[][], number[][]]> {
     return this.runtime.runInference(

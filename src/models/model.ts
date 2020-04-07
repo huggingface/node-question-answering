@@ -10,7 +10,8 @@ export enum ModelInput {
 
 export enum ModelType {
   Distilbert = "distilbert",
-  Roberta = "roberta"
+  Roberta = "roberta",
+  Bert = "bert" // AFTER roberta, to be sure model type inference works
 }
 
 export abstract class Model {
@@ -34,9 +35,18 @@ export interface ModelOptions {
    */
   cased?: boolean;
   inputsNames?: ModelInputsNames;
+  /**
+   * Type of the model (inferred from path by default)
+   */
   type?: ModelType;
   outputsNames?: ModelOutputNames;
+  /**
+   * Path of the model
+   */
   path: string;
+  /**
+   * @default RuntimeType.SavedModel
+   */
   runtime?: RuntimeType;
   /**
    * @default "serving_default"

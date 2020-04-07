@@ -8,7 +8,7 @@ export class DistilbertModel extends Model {
     ModelInput.Ids
   ];
 
-  public type = ModelType.Distilbert;
+  public readonly type = ModelType.Distilbert;
 
   runInference(encodings: Encoding[]): Promise<[number[][], number[][]]> {
     return this.runtime.runInference(
