@@ -1,31 +1,40 @@
 import fetch from "node-fetch";
 
+import { ModelInput } from "../models";
 import {
-  Model,
-  ModelOptions,
-  ModelParams,
-  ModelType,
+  FullParams,
   PartialMetaGraph,
-  PartialModelTensorInfo
-} from "./model";
+  PartialModelTensorInfo,
+  Runtime,
+  RuntimeOptions
+} from "./runtime";
 
-export class RemoteModel extends Model {
-  private constructor(public params: ModelParams, type: ModelType) {
-    super(type);
+export class Remote extends Runtime {
+  private constructor(public params: Readonly<FullParams>) {
+    super(params);
   }
 
   async runInference(
     ids: number[][],
-    attentionMask: number[][]
+    attentionMask: number[][],
+    tokenTypeIds?: number[][]
   ): Promise<[number[][], number[][]]> {
+    const modelInputs = {
+      [this.params.inputsNames[ModelInput.Ids]]: ids,
+      [this.params.inputsNames[ModelInput.AttentionMask]]: attentionMask
+    };
+
+    if (tokenTypeIds && this.params.inputsNames[ModelInput.TokenTypeIds]) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      modelInputs[this.params.inputsNames[ModelInput.TokenTypeIds]!] = tokenTypeIds;
+    }
+
     const result = await fetch(`${this.params.path}:predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        inputs: {
-          [this.params.inputsNames.ids]: ids,
-          [this.params.inputsNames.attentionMask]: attentionMask
-        },
+        inputs: modelInputs,
+        // eslint-disable-next-line @typescript-eslint/camelcase
         signature_name: this.params.signatureName
       })
     }).then(r => r.json());
@@ -38,12 +47,11 @@ export class RemoteModel extends Model {
     return [startLogits, endLogits];
   }
 
-  static async fromOptions(options: ModelOptions): Promise<RemoteModel> {
+  static async fromOptions(options: RuntimeOptions): Promise<Remote> {
     const modelGraph = await this.getRemoteMetaGraph(options.path);
     const fullParams = this.computeParams(options, modelGraph);
 
-    const modelType = this.getModelType(options);
-    return new RemoteModel(fullParams, modelType);
+    return new Remote(fullParams);
   }
 
   private static async getRemoteMetaGraph(url: string): Promise<PartialMetaGraph> {

@@ -6,8 +6,8 @@ import { promisify } from "util";
 import { DEFAULT_VOCAB_PATH } from "../qa-options";
 import { Tokenizer, TokenizerOptions } from "./tokenizer";
 
-export class DistilbertTokenizer extends Tokenizer<BertWordPieceTokenizer> {
-  static async fromOptions(options: TokenizerOptions): Promise<DistilbertTokenizer> {
+export class BertTokenizer extends Tokenizer<BertWordPieceTokenizer> {
+  static async fromOptions(options: TokenizerOptions): Promise<BertTokenizer> {
     let vocabPath = options.vocabPath;
     if (!vocabPath) {
       const fullPath = path.join(options.modelPath, "vocab.txt");
@@ -24,7 +24,7 @@ export class DistilbertTokenizer extends Tokenizer<BertWordPieceTokenizer> {
       lowercase: options.lowercase
     });
 
-    return new DistilbertTokenizer(tokenizer);
+    return new BertTokenizer(tokenizer);
   }
 
   getQuestionLength(encoding: Encoding): number {

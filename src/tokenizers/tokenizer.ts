@@ -9,7 +9,7 @@ import { BaseTokenizer } from "tokenizers/dist/implementations/tokenizers/base.t
 //   PaddingConfiguration,
 //   TruncationConfiguration
 // } from "tokenizers/bindings/tokenizer";
-import { ModelType } from "../models/model";
+import { ModelType } from "../models";
 
 export interface TokenizerOptions {
   lowercase?: boolean;
