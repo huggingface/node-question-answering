@@ -1,4 +1,4 @@
-import { ModelInput, ModelInputsNames, ModelOutputNames } from "../models";
+import { Logits, ModelInput, ModelInputsNames, ModelOutputNames } from "../models/model";
 
 const MODEL_DEFAULTS: ModelDefaults = {
   inputsNames: {
@@ -30,7 +30,7 @@ export abstract class Runtime {
     ids: number[][],
     attentionMask: number[][],
     tokenTypeIds?: number[][]
-  ): Promise<[number[][], number[][]]>;
+  ): Promise<[Logits, Logits]>;
 
   protected static computeParams(
     options: RuntimeOptions,

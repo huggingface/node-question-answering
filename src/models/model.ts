@@ -14,6 +14,8 @@ export enum ModelType {
   Bert = "bert" // AFTER roberta, to be sure model type inference works
 }
 
+export type Logits = number[][];
+
 export abstract class Model {
   public readonly cased: boolean;
   public readonly inputLength: number;
@@ -26,7 +28,7 @@ export abstract class Model {
     this.path = runtime.params.path;
   }
 
-  abstract runInference(encodings: Encoding[]): Promise<[number[][], number[][]]>;
+  abstract runInference(encodings: Encoding[]): Promise<[Logits, Logits]>;
 }
 
 export interface ModelOptions {
