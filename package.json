@@ -22,6 +22,9 @@
     "@tensorflow/tfjs-node": "^1.5.2",
     "@types/node": "^13.5.0",
     "@types/node-fetch": "^2.5.4",
+    "@types/progress": "^2.0.3",
+    "@types/shelljs": "^0.8.7",
+    "@types/tar": "^4.0.3",
     "node-fetch": "^2.6.0",
     "progress": "^2.0.3",
     "shelljs": "^0.8.3",
@@ -47,7 +50,8 @@
   },
   "scripts": {
     "test": "jest",
-    "lint": "eslint --fix --ext .js,.ts src scripts"
+    "lint": "eslint --fix --ext .js,.ts src scripts",
+    "lint-check": "eslint --ext .js,.ts src scripts"
   },
   "engines": {
     "node": ">=10 < 11 || >=12 <14"

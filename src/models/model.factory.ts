@@ -1,15 +1,85 @@
+import path from "path";
+
+import { DEFAULT_ASSETS_DIR } from "../qa-options";
 import { Remote } from "../runtimes/remote.runtime";
-import { Runtime, RuntimeOptions, RuntimeType } from "../runtimes/runtime";
+import { LocalRuntime, Runtime, RuntimeOptions, RuntimeType } from "../runtimes/runtime";
 import { SavedModel } from "../runtimes/saved-model.runtime";
 import { TFJS } from "../runtimes/tfjs.runtime";
+import { downloadModel, getAbsolutePath } from "../utils";
 import { BertModel } from "./bert.model";
 import { DistilbertModel } from "./distilbert.model";
-import { Model, ModelOptions, ModelType } from "./model";
+import {
+  getModelType,
+  Model,
+  ModelInputsNames,
+  ModelOutputNames,
+  ModelType
+} from "./model";
 import { RobertaModel } from "./roberta.model";
 
-export async function initModel(options: ModelOptions): Promise<Model> {
-  const modelType = getModelType(options);
+interface CommonModelOptions {
+  inputsNames?: ModelInputsNames;
+  /**
+   * Fully qualified name of the model (including the author if applicable)
+   * @example "distilbert-base-uncased-distilled-squad"
+   * @example "deepset/bert-base-cased-squad2"
+   */
+  name: string;
+  outputsNames?: ModelOutputNames;
+  /**
+   * Type of "runtime" to use for model inference: SavedModel, TFJS or remote.
+   * @default RuntimeType.SavedModel
+   */
+  runtime?: RuntimeType;
+  /**
+   * @default "serving_default"
+   */
+  signatureName?: string;
+  /**
+   * Type of the model (inferred from model name by default)
+   */
+  type?: ModelType;
+}
 
+export interface RemoteModelOptions extends CommonModelOptions {
+  /**
+   * - If `runtime` is `Runtime.Remote` it must be the url at which the model is exposed.
+   */
+  path: string;
+  runtime: RuntimeType.Remote;
+}
+
+export interface LocalModelOptions extends CommonModelOptions {
+  /**
+   * - For local SavedModel and TFJS, corresponds to the path of the location at which the models are located.
+   * It can be absolute or relative to the root of the project.
+   * Defaults to a `.models` directory at the root of the project (created if needed).
+   */
+  path?: string;
+  runtime?: LocalRuntime;
+}
+
+export type ModelFactoryOptions = LocalModelOptions | RemoteModelOptions;
+
+export async function initModel(options: ModelFactoryOptions): Promise<Model> {
+  const runtimeType = options.runtime ?? RuntimeType.SavedModel;
+
+  let modelDir: string;
+  if (options.runtime !== RuntimeType.Remote) {
+    const assetsDir = getAbsolutePath(options.path, DEFAULT_ASSETS_DIR);
+    modelDir = path.join(assetsDir, options.name);
+    if (runtimeType !== RuntimeType.Remote) {
+      await downloadModel({
+        dir: modelDir,
+        format: runtimeType,
+        name: options.name
+      });
+    }
+  } else {
+    modelDir = options.path;
+  }
+
+  const modelType = options.type ?? getModelType(options.name);
   let ModelClass: typeof BertModel | typeof DistilbertModel | typeof RobertaModel;
   switch (modelType) {
     case ModelType.Roberta:
@@ -28,12 +98,11 @@ export async function initModel(options: ModelOptions): Promise<Model> {
     inputs: ModelClass.inputs,
     inputsNames: options.inputsNames,
     outputsNames: options.outputsNames,
-    path: options.path,
+    path: modelDir,
     signatureName: options.signatureName
   };
 
   let runtime: Runtime;
-  const runtimeType = options.runtime ?? RuntimeType.SavedModel;
   switch (runtimeType) {
     case RuntimeType.Remote:
       runtime = await Remote.fromOptions(runtimeOptions);
@@ -47,27 +116,5 @@ export async function initModel(options: ModelOptions): Promise<Model> {
       runtime = await SavedModel.fromOptions(runtimeOptions);
   }
 
-  return new ModelClass(runtime, options.cased);
-}
-
-/**
- * Infer model type from model path
- * @param options Model options
- * @throws If no model type inferred
- */
-function getModelType(options: ModelOptions): ModelType {
-  if (options.type) {
-    return options.type;
-  }
-
-  const types = Object.entries(ModelType);
-  for (const [name, type] of types) {
-    if (options.path.toLowerCase().includes(name.toLowerCase())) {
-      return type;
-    }
-  }
-
-  throw new Error(
-    "Impossible to determine the type of the model. You can specify it manually by providing the `type` in the  options"
-  );
+  return new ModelClass(options.name, modelDir, runtime);
 }

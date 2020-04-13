@@ -59,6 +59,7 @@ export class Remote extends Runtime {
     const signatures = Object.keys(rawSignatureDef).filter(k => !k.startsWith("__"));
     const parsedSignatures = signatures.map(k => {
       const signature = rawSignatureDef[k];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const parsedInputs = Object.entries<any>(signature.inputs).map<
         Record<string, PartialModelTensorInfo>
       >(([key, val]) => {

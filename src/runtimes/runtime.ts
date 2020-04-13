@@ -15,9 +15,11 @@ const MODEL_DEFAULTS: ModelDefaults = {
 
 export enum RuntimeType {
   Remote = "remote",
-  SavedModel = "savedModel",
+  SavedModel = "saved_model",
   TFJS = "tfjs"
 }
+
+export type LocalRuntime = RuntimeType.SavedModel | RuntimeType.TFJS;
 
 export abstract class Runtime {
   constructor(public params: Readonly<FullParams>) {}

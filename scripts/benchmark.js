@@ -1,5 +1,7 @@
+#!/usr/bin/env node
 //@ts-check
-const QAClient = require("../dist/index").QAClient;
+
+const QAClient = require("../dist/qa").QAClient;
 
 const DATA = [
   {
@@ -82,7 +84,9 @@ const DATA = [
     for (const data of DATA) {
       for (const question of data.questions) {
         const answer = await qaClient.predict(question, data.context);
+        // @ts-ignore
         times[data.type].inference.push(answer.inferenceTime);
+        // @ts-ignore
         times[data.type].total.push(answer.totalTime);
       }
     }

@@ -1,3 +1,7 @@
-export * from "./tokenizer";
-export * from "./bert.tokenizer";
-export * from "./roberta.tokenizer";
+export { Tokenizer } from "./tokenizer";
+export {
+  initTokenizer,
+  BertTokenizerFactoryOptions,
+  RobertaTokenizerFactoryOptions,
+  TokenizerFactoryOptions
+} from "./tokenizer.factory";

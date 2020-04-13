@@ -1,5 +1,9 @@
+#!/usr/bin/env node
+//@ts-check
+
 const chalk = require("chalk");
 const yargsInteractive = require("yargs-interactive");
+
 const QAClient = require("../dist/qa").QAClient;
 
 const texts = {
@@ -45,6 +49,7 @@ const options = {
 
   yargsInteractive()
     .usage("$0 <command> [args]")
+    // @ts-ignore
     .interactive(options)
     .then(async result => {
       const context = texts[result.subject];

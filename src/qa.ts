@@ -1,14 +1,10 @@
 import { Encoding, slice, TruncationStrategy } from "tokenizers";
 
-import { Logits, Model, ModelType } from "./models/model";
+import { Logits, Model } from "./models/model";
 import { initModel } from "./models/model.factory";
-import { DEFAULT_MODEL_PATH, QAOptions } from "./qa-options";
-import {
-  BertTokenizer,
-  RobertaTokenizer,
-  Tokenizer,
-  TokenizerOptions
-} from "./tokenizers";
+import { DEFAULT_MODEL_NAME, QAOptions } from "./qa-options";
+import { Tokenizer } from "./tokenizers/tokenizer";
+import { initTokenizer, TokenizerFactoryOptions } from "./tokenizers/tokenizer.factory";
 
 interface Feature {
   contextStartIndex: number;
@@ -48,28 +44,25 @@ export class QAClient {
   ) {}
 
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
-    const model =
-      options?.model ?? (await initModel({ path: DEFAULT_MODEL_PATH, cased: true }));
+    const model = options?.model ?? (await initModel({ name: DEFAULT_MODEL_NAME }));
 
-    let tokenizer = options?.tokenizer;
-    if (!tokenizer) {
-      const tokenizerOptions: TokenizerOptions = {
-        modelPath: model.path,
+    let tokenizer: Tokenizer;
+    if (options?.tokenizer instanceof Tokenizer) {
+      tokenizer = options.tokenizer;
+    } else {
+      const tokenizerOptions: TokenizerFactoryOptions = {
+        filesDir: options?.tokenizer?.filesDir ?? model.path,
+        modelName: model.name,
         modelType: model.type,
-        mergesPath: options?.mergesPath,
-        vocabPath: options?.vocabPath,
-        lowercase: !model.cased
+        mergesFile: options?.tokenizer?.mergesFile,
+        vocabFile: options?.tokenizer?.vocabFile
       };
 
-      switch (model.type) {
-        case ModelType.Roberta:
-          tokenizer = await RobertaTokenizer.fromOptions(tokenizerOptions);
-          break;
-
-        default:
-          tokenizer = await BertTokenizer.fromOptions(tokenizerOptions);
-          break;
+      if (typeof options?.cased !== "undefined") {
+        tokenizerOptions.lowercase = !options.cased;
       }
+
+      tokenizer = await initTokenizer(tokenizerOptions);
     }
 
     return new QAClient(model, tokenizer, options?.timeIt);

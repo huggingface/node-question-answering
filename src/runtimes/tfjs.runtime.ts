@@ -1,10 +1,7 @@
 import * as tf from "@tensorflow/tfjs-node";
-import { exists } from "fs";
 import * as path from "path";
-import { promisify } from "util";
 
 import { Logits, ModelInput } from "../models/model";
-import { DEFAULT_ASSETS_PATH } from "../qa-options";
 import {
   FullParams,
   isOneDimensional,
@@ -71,11 +68,9 @@ export class TFJS extends Runtime {
   }
 
   static async fromOptions(options: RuntimeOptions): Promise<TFJS> {
-    options.path = (await promisify(exists)(options.path))
-      ? options.path
-      : path.join(DEFAULT_ASSETS_PATH, options.path, "tfjs");
+    const fullPath = path.join(options.path, "tfjs");
 
-    const model = await tf.loadGraphModel(`file:///${options.path}/model.json`);
+    const model = await tf.loadGraphModel(`file:///${fullPath}/model.json`);
     const modelGraph: PartialMetaGraph = {
       signatureDefs: {
         [options.signatureName ?? "serving_default"]: {
@@ -88,7 +83,7 @@ export class TFJS extends Runtime {
       }
     };
 
-    const fullParams = this.computeParams(options, modelGraph);
+    const fullParams = this.computeParams({ ...options, path: fullPath }, modelGraph);
     return new TFJS(model, fullParams);
   }
 }
