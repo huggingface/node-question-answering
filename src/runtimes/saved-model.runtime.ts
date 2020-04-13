@@ -1,11 +1,7 @@
 import * as tf from "@tensorflow/tfjs-node";
 import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
-import { exists } from "fs";
-import * as path from "path";
-import { promisify } from "util";
 
 import { Logits, ModelInput } from "../models/model";
-import { DEFAULT_ASSETS_PATH } from "../qa-options";
 import { FullParams, isOneDimensional, Runtime, RuntimeOptions } from "./runtime";
 
 export class SavedModel extends Runtime {
@@ -59,14 +55,10 @@ export class SavedModel extends Runtime {
   }
 
   static async fromOptions(options: RuntimeOptions): Promise<SavedModel> {
-    options.path = (await promisify(exists)(options.path))
-      ? options.path
-      : path.join(DEFAULT_ASSETS_PATH, options.path);
-
     const modelGraph = (await tf.node.getMetaGraphsFromSavedModel(options.path))[0];
     const fullParams = this.computeParams(options, modelGraph);
 
-    const model = await tf.node.loadSavedModel(fullParams.path);
+    const model = await tf.node.loadSavedModel(options.path);
     return new SavedModel(model, fullParams);
   }
 }

@@ -11,13 +11,31 @@ import { BaseTokenizer } from "tokenizers/dist/implementations/tokenizers/base.t
 // } from "tokenizers/bindings/tokenizer";
 import { ModelType } from "../models";
 
-export interface TokenizerOptions {
+export interface TokenizerBaseOptions {
+  /**
+   * @default true
+   */
   lowercase?: boolean;
-  mergesPath?: string;
-  modelPath: string;
+  /**
+   * Name of the merges file (if applicable to the tokenizer)
+   * @default "merges.txt"
+   */
+  mergesFile?: string;
+  /**
+   * Directory under which the files needed by the tokenizer are located.
+   * Must be an absolute path.
+   */
+  filesDir: string;
   modelType: ModelType;
-  vocabPath?: string;
+  /**
+   * Name of the vocab file (if applicable to the tokenizer)
+   * @default "vocab.txt" | "vocab.json"
+   */
+  vocabFile?: string;
 }
+
+export type FullTokenizerOptions<TokSpecificOptions> = TokenizerBaseOptions &
+  Partial<TokSpecificOptions>;
 
 export abstract class Tokenizer<T extends BaseTokenizer<object> = BaseTokenizer<object>> {
   constructor(protected tokenizer: T) {}

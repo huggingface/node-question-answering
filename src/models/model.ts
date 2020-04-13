@@ -1,6 +1,6 @@
 import { Encoding } from "tokenizers";
 
-import { Runtime, RuntimeType } from "../runtimes/runtime";
+import { Runtime } from "../runtimes/runtime";
 
 export enum ModelInput {
   AttentionMask = "attentionMask",
@@ -17,43 +17,37 @@ export enum ModelType {
 export type Logits = number[][];
 
 export abstract class Model {
-  public readonly cased: boolean;
   public readonly inputLength: number;
-  public readonly path: string;
   public abstract readonly type: ModelType;
 
-  constructor(protected runtime: Runtime, cased?: boolean) {
-    this.cased = !!cased;
+  constructor(
+    public readonly name: string,
+    public readonly path: string,
+    protected runtime: Runtime
+  ) {
     this.inputLength = runtime.params.shape[1];
-    this.path = runtime.params.path;
+    this.path = path;
   }
 
   abstract runInference(encodings: Encoding[]): Promise<[Logits, Logits]>;
 }
 
-export interface ModelOptions {
-  /**
-   * @default false
-   */
-  cased?: boolean;
-  inputsNames?: ModelInputsNames;
-  /**
-   * Type of the model (inferred from path by default)
-   */
-  type?: ModelType;
-  outputsNames?: ModelOutputNames;
-  /**
-   * Path of the model
-   */
-  path: string;
-  /**
-   * @default RuntimeType.SavedModel
-   */
-  runtime?: RuntimeType;
-  /**
-   * @default "serving_default"
-   */
-  signatureName?: string;
+/**
+ * Infer model type from model path
+ * @param modelName Model name
+ * @throws If no model type inferred
+ */
+export function getModelType(modelName: string): ModelType {
+  const types = Object.entries(ModelType);
+  for (const [name, type] of types) {
+    if (modelName.toLowerCase().includes(name.toLowerCase())) {
+      return type;
+    }
+  }
+
+  throw new Error(
+    "Impossible to determine the type of the model. You can specify it manually by providing the `type` in the  options"
+  );
 }
 
 export interface ModelInputsNames {

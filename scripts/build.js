@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+//@ts-check
 
 const path = require("path");
 const shell = require("shelljs");
-const utils = require("./utils");
+const fs = require("fs");
+const promisify = require("util").promisify;
 
 const distPath = "./dist";
 const buildPath = "./build";
@@ -45,8 +47,8 @@ async function buildTs() {
   // Cleanup the previous build, if it exists
   shell.rm("-rf", distPath);
 
-  shell.exec("npm ci --ignore-scripts");
-  await utils.ensureDir(distPath);
+  // shell.exec("npm ci --ignore-scripts");
+  await ensureDir(distPath);
   shell.exec("npx tsc -p tsconfig.prod.json");
 
   shell.echo("BUILDING TS COMPLETE...");
@@ -56,7 +58,7 @@ async function npmPublish() {
   shell.echo("PUBLISHING ON NPM...");
 
   shell.rm("-rf", buildPath);
-  await utils.ensureDir(buildPath);
+  await ensureDir(buildPath);
   shell.cp(
     "-r",
     [distPath, "package.json", "README.md", "LICENSE", "./scripts"],
@@ -67,4 +69,13 @@ async function npmPublish() {
   shell.exec(`npm publish ${buildPath} --access public`);
 
   shell.echo("PUBLISHING ON NPM COMPLETE...");
+}
+
+/**
+ * Ensures a directory exists, creates as needed.
+ */
+async function ensureDir(dirPath, recursive = true) {
+  if (!(await promisify(fs.exists)(dirPath))) {
+    recursive ? shell.mkdir("-p", dirPath) : shell.mkdir(dirPath);
+  }
 }

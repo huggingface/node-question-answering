@@ -1,4 +1,3 @@
-import { exists as fsExists } from "fs";
 import path from "path";
 import {
   AddedToken,
@@ -9,9 +8,9 @@ import {
 } from "tokenizers";
 import { robertaProcessing } from "tokenizers/dist/bindings/post-processors";
 import { PaddingConfiguration } from "tokenizers/dist/bindings/tokenizer";
-import { promisify } from "util";
 
-import { Tokenizer, TokenizerOptions } from "./tokenizer";
+import { exists } from "../utils";
+import { FullTokenizerOptions, Tokenizer } from "./tokenizer";
 
 export interface RobertaTokenizerOptions {
   clsToken: Token;
@@ -38,13 +37,14 @@ export class RobertaTokenizer extends Tokenizer<ByteLevelBPETokenizer> {
     this.unkToken = options.unkToken;
   }
 
-  static async fromOptions(options: TokenizerOptions): Promise<RobertaTokenizer> {
-    const existsAsync = promisify(fsExists);
-    let vocabFile = options.vocabPath;
+  static async fromOptions(
+    options: FullTokenizerOptions<RobertaTokenizerOptions>
+  ): Promise<RobertaTokenizer> {
+    let vocabFile = options.vocabFile;
 
     if (!vocabFile) {
-      const fullPath = path.join(options.modelPath, "vocab.json");
-      if (await existsAsync(fullPath)) {
+      const fullPath = path.join(options.filesDir, "vocab.json");
+      if (await exists(fullPath)) {
         vocabFile = fullPath;
       }
 
@@ -55,10 +55,10 @@ export class RobertaTokenizer extends Tokenizer<ByteLevelBPETokenizer> {
       }
     }
 
-    let mergesFile = options.mergesPath;
+    let mergesFile = options.mergesFile;
     if (!mergesFile) {
-      const fullPath = path.join(options.modelPath, "merges.txt");
-      if (await existsAsync(fullPath)) {
+      const fullPath = path.join(options.filesDir, "merges.txt");
+      if (await exists(fullPath)) {
         mergesFile = fullPath;
       }
 
@@ -75,17 +75,19 @@ export class RobertaTokenizer extends Tokenizer<ByteLevelBPETokenizer> {
       vocabFile
     });
 
-    const clsToken = "<s>";
-    const eosToken = "</s>";
-    const maskToken = new AddedToken("<mask>", { leftStrip: true });
-    const padToken = "<pad>";
-    const unkToken = "<unk>";
+    const clsToken = options.clsToken ?? "<s>";
+    const eosToken = options.eosToken ?? "</s>";
+    const maskToken = options.maskToken ?? new AddedToken("<mask>", { leftStrip: true });
+    const padToken = options.padToken ?? "<pad>";
+    const unkToken = options.unkToken ?? "<unk>";
 
+    const eosString = getTokenContent(eosToken);
+    const clsString = getTokenContent(clsToken);
     const postProcessor = robertaProcessing(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      [eosToken, tokenizer.tokenToId(eosToken)!],
+      [eosString, tokenizer.tokenToId(eosString)!],
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      [clsToken, tokenizer.tokenToId(clsToken)!]
+      [clsString, tokenizer.tokenToId(clsString)!]
     );
 
     tokenizer.setPostProcessor(postProcessor);
