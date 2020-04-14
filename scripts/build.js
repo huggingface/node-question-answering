@@ -47,7 +47,7 @@ async function buildTs() {
   // Cleanup the previous build, if it exists
   shell.rm("-rf", distPath);
 
-  // shell.exec("npm ci --ignore-scripts");
+  shell.exec("npm ci --ignore-scripts");
   await ensureDir(distPath);
   shell.exec("npx tsc -p tsconfig.prod.json");
 
