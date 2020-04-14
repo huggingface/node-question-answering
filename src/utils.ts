@@ -110,7 +110,7 @@ export async function downloadModel(model: ModelDownloadOptions): Promise<void> 
 
     url = defaultUrl;
   } else {
-    url = getHfUrl(model.name, "saved_model.tar.gz");
+    url = getHfUrl(model.name, `${model.format}.tar.gz`);
   }
 
   await new Promise((resolve, reject) => {
