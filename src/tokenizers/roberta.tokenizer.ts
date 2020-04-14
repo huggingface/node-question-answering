@@ -4,10 +4,10 @@ import {
   ByteLevelBPETokenizer,
   Encoding,
   getTokenContent,
+  PaddingConfiguration,
   Token
 } from "tokenizers";
-import { robertaProcessing } from "tokenizers/dist/bindings/post-processors";
-import { PaddingConfiguration } from "tokenizers/dist/bindings/tokenizer";
+import { robertaProcessing } from "tokenizers/bindings/post-processors";
 
 import { exists } from "../utils";
 import { FullTokenizerOptions, Tokenizer } from "./tokenizer";

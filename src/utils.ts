@@ -181,9 +181,12 @@ const VOCAB_MAPPING: Partial<Record<ModelType, VocabFiles>> = {
 
 const DEFAULT_VOCAB = { vocabFile: { name: "vocab.txt" } };
 
-export async function getVocab(
-  options: VocabDownloadOptions
-): Promise<VocabConfiguration> {
+type VocabReturn<TReturnConfig> = TReturnConfig extends true ? VocabConfiguration : void;
+
+export async function getVocab<TReturnConfig extends boolean>(
+  options: VocabDownloadOptions,
+  returnConfig?: TReturnConfig
+): Promise<VocabReturn<TReturnConfig>> {
   await ensureDir(options.dir);
 
   const modelType = getModelType(options.modelName);
@@ -253,14 +256,14 @@ export async function getVocab(
       const rawValue = await response.text();
       await fs.promises.writeFile(file, rawValue);
 
-      if (VOCAB_CONFIG_KEYS.includes(vocabFile.name as ConfigFilesKey)) {
+      if (returnConfig && VOCAB_CONFIG_KEYS.includes(vocabFile.name as ConfigFilesKey)) {
         const configKey = getVocabConfigKey(vocabFile.name as ConfigFilesKey);
         vocabConfig[configKey] = JSON.parse(rawValue);
       }
     } else {
       options.verbose && shell.echo(`${vocabFile.name} already exists, doing nothing...`);
 
-      if (VOCAB_CONFIG_KEYS.includes(vocabFile.name as ConfigFilesKey)) {
+      if (returnConfig && VOCAB_CONFIG_KEYS.includes(vocabFile.name as ConfigFilesKey)) {
         try {
           const configFile = await fs.promises.readFile(file, { encoding: "utf-8" });
           const configKey = getVocabConfigKey(vocabFile.name as ConfigFilesKey);
@@ -272,7 +275,11 @@ export async function getVocab(
     }
   }
 
-  return vocabConfig;
+  if (returnConfig === true) {
+    return vocabConfig as VocabReturn<TReturnConfig>;
+  }
+
+  return void 0 as VocabReturn<TReturnConfig>;
 }
 
 function getHfUrl(model: string, file: string): string {
@@ -292,12 +299,12 @@ export function getAbsolutePath(pathToCheck?: string, rootDir = ROOT_DIR): strin
 }
 
 const HF_VOCAB_FILES_MAPPING: Record<string, string> = {
-  /** Distilbert */
+  /** DistilBERT */
   "distilbert-base-uncased-distilled-squad":
     "https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-uncased-vocab.txt",
   "distilbert-base-cased-distilled-squad":
     "https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-cased-vocab.txt",
-  /** Bert */
+  /** BERT */
   "bert-large-uncased-whole-word-masking-finetuned-squad":
     "https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-uncased-whole-word-masking-finetuned-squad-vocab.txt",
   "bert-large-cased-whole-word-masking-finetuned-squad":
@@ -310,6 +317,16 @@ interface DefaultModel {
 }
 
 const HF_MODELS_MAPPING: Record<string, DefaultModel> = {
+  /** BERT */
+  "bert-large-cased-whole-word-masking-finetuned-squad": {
+    [RuntimeType.SavedModel]:
+      "https://cdn.huggingface.co/bert-large-cased-whole-word-masking-finetuned-squad-saved_model.tar.gz"
+  },
+  "bert-large-uncased-whole-word-masking-finetuned-squad": {
+    [RuntimeType.SavedModel]:
+      "https://cdn.huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad-saved_model.tar.gz"
+  },
+  /** DistilBERT */
   "distilbert-base-cased-distilled-squad": {
     [RuntimeType.SavedModel]:
       "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-saved_model.tar.gz",

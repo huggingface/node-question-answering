@@ -1,14 +1,11 @@
-import { Encoding, TruncationOptions } from "tokenizers";
 import {
+  BaseTokenizer,
+  Encoding,
   PaddingConfiguration,
-  TruncationConfiguration
-} from "tokenizers/dist/bindings/tokenizer";
-import { BaseTokenizer } from "tokenizers/dist/implementations/tokenizers/base.tokenizer";
+  TruncationConfiguration,
+  TruncationOptions
+} from "tokenizers";
 
-// import {
-//   PaddingConfiguration,
-//   TruncationConfiguration
-// } from "tokenizers/bindings/tokenizer";
 import { ModelType } from "../models";
 
 export interface TokenizerBaseOptions {
