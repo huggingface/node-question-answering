@@ -88,14 +88,14 @@ describe("QAClient", () => {
       }, 100000000);
 
       it.each(shorts)("gives the correct answer with short contexts", async short => {
-        const predOne = await qa.predict(short.question[0], short.context);
-        expect(predOne?.text).toEqual(short.question[1]);
+        const result = await qa.predict(short.question[0], short.context);
+        expect(result?.text).toEqual(short.question[1]);
       });
 
       for (const question of long.questions) {
         it("gives the correct answer with long contexts", async () => {
-          const predOne = await qa.predict(question[0], long.context);
-          expect(predOne?.text).toEqual(question[1]);
+          const result = await qa.predict(question[0], long.context);
+          expect(result?.text).toEqual(question[1]);
         });
       }
     });
@@ -111,14 +111,14 @@ describe("QAClient", () => {
       }, 100000000);
 
       it.each(shorts)("gives the correct answer with short contexts", async short => {
-        const predOne = await qa.predict(short.question[0], short.context);
-        expect(predOne?.text).toEqual(short.question[1]);
+        const result = await qa.predict(short.question[0], short.context);
+        expect(result?.text).toEqual(short.question[1]);
       });
 
       for (const question of long.questions) {
         it("gives the correct answer with long contexts", async () => {
-          const predOne = await qa.predict(question[0], long.context);
-          expect(predOne?.text).toEqual(question[1]);
+          const result = await qa.predict(question[0], long.context);
+          expect(result?.text).toEqual(question[1]);
         });
       }
     });

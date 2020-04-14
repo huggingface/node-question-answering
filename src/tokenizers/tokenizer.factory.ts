@@ -91,12 +91,15 @@ export async function initTokenizer(
   };
 
   if (options.modelName) {
-    const vocabConfig = await getVocab({
-      dir: fullOptions.filesDir,
-      modelName: options.modelName,
-      mergesFile: options.mergesFile,
-      vocabFile: options.vocabFile
-    });
+    const vocabConfig = await getVocab(
+      {
+        dir: fullOptions.filesDir,
+        modelName: options.modelName,
+        mergesFile: options.mergesFile,
+        vocabFile: options.vocabFile
+      },
+      true
+    );
 
     if (
       typeof fullOptions.lowercase === "undefined" &&
