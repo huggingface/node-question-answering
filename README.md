@@ -4,7 +4,9 @@
 
 #### Production-ready Question Answering directly in Node.js, with only 3 lines of code!
 
-This package leverages the power of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then uses [TensorFlow.js](https://www.tensorflow.org/js) to run the [DistilBERT](https://arxiv.org/abs/1910.01108)-cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased).
+This package leverages the power of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then uses [TensorFlow.js](https://www.tensorflow.org/js) to run the [DistilBERT](https://arxiv.org/abs/1910.01108)-cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased). DistilBERT is used by default, but any other model from the [🤗Transformers](https://github.com/huggingface/transformers) library can be used in 3 additional lines of code!
+
+It can run models in SavedModel and TFJS formats locally, as well as [remote models](#remote-model) thanks to TensorFlow Serving.
 
 ## Installation
 
@@ -14,16 +16,11 @@ npm install question-answering@latest
 
 ## Simple example
 
-This example is running the model locally. To do so, you first need to download the model and vocabulary file:
-```bash
-npx question-answering download
-```
-
-> By default, the model and vocabulary are downloaded inside a `.models` directory at the root of your project; you can provide a custom directory by using the `--dir` option of the CLI.
+The following example will automatically download the default DistilBERT model in SavedModel format if not already present, along with the required vocabulary / tokenizer files. It will then run the model and return the answer to the `question`.
 
 ```typescript
-import { QAClient } from "question-answering"; // If using Typescript or Babel
-// const { QAClient } = require("question-answering"); // If using vanilla JS
+import { QAClient } from "question-answering"; // When using Typescript or Babel
+// const { QAClient } = require("question-answering"); // When using vanilla JS
 
 const text = `
   Super Bowl 50 was an American football game to determine the champion of the National Football League (NFL) for the 2015 season.
@@ -39,50 +36,62 @@ const answer = await qaClient.predict(question, text);
 console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 ```
 
+> You can also download the model and vocabulary / tokenizer files separately by [using the CLI](#cli).
+
 ## Advanced
 
+<a name="models"></a>
 ### Using another model
 
-The above example internally makes use of a DistilBERT-cased model in the SavedModel format. You can choose to use any other DistilBERT-like model, either in SavedModel format or TFJS format.
+The above example internally makes use of the default DistilBERT-cased model in the SavedModel format. This library is also compatible with any other __DistilBERT__-based model, as long as any __BERT__-based and __RoBERTa__-based models, both in SavedModel format or TFJS format. The following list of models are available in SavedModel format from the [Hugging Face model hub](https://huggingface.co/models) thanks to the amazing NLP community 🤗:
 
-_Note that using a model [hosted on Hugging Face](https://huggingface.co/models) is not a requirement: you can use any compatible model by passing the correct local path for the model and vocabulary, and skip the download step. In this case, you'll also need to provide a `vocabPath` when creating the `QAClient`._
+* [`bert-large-cased-whole-word-masking-finetuned-squad`](https://huggingface.co/bert-large-cased-whole-word-masking-finetuned-squad)
+* [`bert-large-uncased-whole-word-masking-finetuned-squad`](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)
+* [`deepset/bert-base-cased-squad2`](https://huggingface.co/deepset/bert-base-cased-squad2)
+* [`deepset/bert-large-uncased-whole-word-masking-squad2`](https://huggingface.co/deepset/bert-large-uncased-whole-word-masking-squad2)
+* [`deepset/roberta-base-squad2`](https://huggingface.co/deepset/roberta-base-squad2)
+* [`distilbert-base-cased-distilled-squad`](https://huggingface.co/distilbert-base-cased-distilled-squad) (default) (also available in TFJS format)
+* [`distilbert-base-uncased-distilled-squad`](https://huggingface.co/distilbert-base-uncased-distilled-squad)
+* [`henryk/bert-base-multilingual-cased-finetuned-dutch-squad2`](https://huggingface.co/henryk/bert-base-multilingual-cased-finetuned-dutch-squad2)
+* [`ktrapeznikov/biobert_v1.1_pubmed_squad_v2`](https://huggingface.co/ktrapeznikov/biobert_v1.1_pubmed_squad_v2)
+* [`ktrapeznikov/scibert_scivocab_uncased_squad_v2`](https://huggingface.co/ktrapeznikov/scibert_scivocab_uncased_squad_v2)
+* [`mrm8488/bert-base-spanish-wwm-cased-finetuned-spa-squad2-es`](https://huggingface.co/mrm8488/bert-base-spanish-wwm-cased-finetuned-spa-squad2-es)
+* [`mrm8488/distill-bert-base-spanish-wwm-cased-finetuned-spa-squad2-es`](https://huggingface.co/mrm8488/distill-bert-base-spanish-wwm-cased-finetuned-spa-squad2-es)
+* [`mrm8488/spanbert-finetuned-squadv2`](https://huggingface.co/mrm8488/spanbert-finetuned-squadv2)
+* [`twmkn9/bert-base-uncased-squad2`](https://huggingface.co/twmkn9/bert-base-uncased-squad2)
 
-#### SavedModel format
+To specify a model to use with the library, you need to instantiate a model class that you'll then pass to the `QAClient`:
 
-Download the model (here using DistilBERT-uncased fine-tuned on SQuAD):
-```bash
-npx question-answering download distilbert-uncased --format saved_model
-```
-
-> The `--format saved_model` is optional in this case, since the SavedModel format is the default.
-
-> Any community model can be downloaded by specifying a `user/model` path instead of `distilbert-uncased`, as long as it exists a `saved_model.tar.gz` file for this model (containing the SavedModel version).
-
-You can then create a `SavedModel` instance corresponding to the downloaded model, before passing it to `QAClient`:
 ```typescript
-const model = await SavedModel.fromOptions({ path: "distilbert-uncased", cased: false });
+import { initModel, QAClient } from "question-answering"; // When using Typescript or Babel
+// const { initModel, QAClient } = require("question-answering"); // When using vanilla JS
+
+const text = ...
+const question = ...
+
+const model = await initModel({ name: "deepset/roberta-base-squad2" });
 const qaClient = await QAClient.fromOptions({ model });
+const answer = await qaClient.predict(question, text);
+
+console.log(answer); // { text: 'Denver Broncos', score: 0.46 }
 ```
 
-#### TFJS format
+> Note that using a model [hosted on Hugging Face](https://huggingface.co/models) is not a requirement: you can use any compatible model (including any from the HF hub not already available in SavedModel or TFJS format that you converted yourself) by passing the correct local path for the model and vocabulary files in the options.
 
-Download the model (here the TFJS version of DistilBERT-cased fine-tuned on SQuAD):
-```bash
-npx question-answering download distilbert-cased --format tfjs
-```
+#### Using models in TFJS format
 
-> Any community model can be downloaded by specifying a `user/model` path instead of `distilbert-cased`, as long as a `tfjs.tar.gz` file (containing the TFJS version) exists for this model
+To use a TFJS model, you simply need to pass `tfjs` to the `runtime` param of `initModel` (defaults to `saved_model`):
 
-Then instantiate a `TFJSModel` and use it with `QAClient`:
 ```typescript
-const model = await TFJSModel.fromOptions({ path: "distilbert-cased", cased: true });
-const qaClient = await QAClient.fromOptions({ model });
+const model = initModel({ name: "distilbert-base-cased-distilled-squad", runtime: RuntimeType.TFJS });
 ```
+
+As with any SavedModel hosted in the HF model hub, the required files for the TFJS models will be automatically downloaded the first time. You can also download them manually [using the CLI](#cli).
 
 <a name="remote-model"></a>
-### Using [TensorFlow Serving](https://www.tensorflow.org/tfx/guide/serving)
+#### Using remote models with [TensorFlow Serving](https://www.tensorflow.org/tfx/guide/serving)
 
-If your model is in the SavedModel format, you may prefer to host it on a dedicated server. It's possible by instantiating a `RemoteModel` by using the `fromOptions` methods and passing it the server endpoint as `path`. Here is a simple example using [Docker](https://www.tensorflow.org/tfx/serving/docker) locally:
+If your model is in the SavedModel format, you may prefer to host it on a dedicated server. Here is a simple example using [Docker](https://www.tensorflow.org/tfx/serving/docker) locally:
 
 ```bash
 # Inside our project root, download DistilBERT-cased to its default `.models` location
@@ -100,24 +109,40 @@ docker run -t --rm -p 8501:8501 \
     tensorflow/serving &
 ```
 
-In your code:
+In the code, you just have to pass `remote` as `runtime` and the server endpoint as `path`:
 
 ```typescript
-const remoteModel = await RemoteModel.fromOptions(
-  { path: "http://localhost:8501/v1/models/cased", cased: true }
-);
-const qaClient = await QAClient.fromOptions({ model: remoteModel });
+const model = await initModel({
+  name: "distilbert-base-cased-distilled-squad",
+  path: "http://localhost:8501/v1/models/cased",
+  runtime: RuntimeType.Remote
+});
+const qaClient = await QAClient.fromOptions({ model });
 ```
+
+<a name="cli"></a>
+### Downloading models with the CLI
+
+You can choose to download the model and associated vocab file(s) manually using the CLI. For example to download the `deepset/roberta-base-squad2` model:
+```bash
+npx question-answering download deepset/roberta-base-squad2
+```
+
+> By default, the model and vocabulary are downloaded inside a `.models` directory at the root of your project; you can provide a custom directory by using the `--dir` option of the CLI. You can also use `--format tfjs` to download a model in TFJS format (if available). To check all the options of the CLI: `npx question-answering download --help`.
 
 ### Using a custom tokenizer
 
-You can provide your own tokenizer instance to `QAClient.fromOptions`, as long as it implements the [`BERTWordPieceTokenizer`](https://github.com/huggingface/tokenizers/blob/master/bindings/node/lib/implementations/tokenizers/bert-wordpiece.tokenizer.ts) methods.
+The `QAClient.fromOptions` params object has a `tokenizer` field which can either be a set of options relative to the tokenizer files, or an instance of a class extending the abstract [`Tokenizer`](https://github.com/huggingface/node-question-answering/blob/master/src/tokenizers/tokenizer.ts) class. To extend this class, you can create your own or, if you simply need to adjust some options, you can import and use the provided `initTokenizer` method, which will instantiate such a class for you.
 
 ## Performances
 
 Thanks to [the native execution of SavedModel format](https://groups.google.com/a/tensorflow.org/d/msg/tfjs/Xtf6s1Bpkr0/7-Eqn8soAwAJ) in TFJS, the performance of such models is similar to the one using TensorFlow in Python.
 
-Specifically, here are the results of a benchmark using `question-answering` entirely locally (both SavedModel and TFJS formats), using a (pseudo) remote model server (i.e. local Docker), and using the Question Answering pipeline in the [`transformers`](https://github.com/huggingface/transformers) library.
+Specifically, here are the results of a benchmark using `question-answering` with the default DistilBERT-cased model:
+
+* Running entirely locally (both SavedModel and TFJS formats)
+* Using a (pseudo) remote model server (i.e. local Docker with TensorFlow Serving running the SavedModel format)
+* Using the Question Answering pipeline in the [`transformers`](https://github.com/huggingface/transformers) library.
 
 ![QA benchmark chart](https://docs.google.com/spreadsheets/d/e/2PACX-1vRCprbDB9T8nwdOpRv2pmlOXWKw3vVOx5P2jbn7hipjCyaGRuQS3u5KWpE7ux5Q0jbqT9HFVMivkI4x/pubchart?oid=2051609279&format=image)
 _Shorts texts are texts between 500 and 1000 characters, long texts are between 4000 and 5000 characters. You can check the `question-answering` benchmark script [here](./scripts/benchmark.js) (the `transformers` one is equivalent). Benchmark run on a standard 2019 MacBook Pro running on macOS 10.15.2._
