@@ -5,13 +5,13 @@ This version introduces full support for any DistilBERT/BERT/RoBERTa based model
 ### BREAKING CHANGES
 
 * The model-specific instantiation methods are removed and replaced by a single `initModel` method paired with a `runtime` field which can either be `tfjs`, `saved_model` or `remote`.
-* When passing a tokenizer to `QAClient.fromOptions`, the tokenizer now needs to extends the abstract [`Tokenizer`](https://github.com/huggingface/node-question-answering/blob/master/src/tokenizers/tokenizer.ts) class, which itself is a wrapper around [🤗Tokenizers](https://github.com/huggingface/tokenizers).
+* When passing a tokenizer to `QAClient.fromOptions`, the tokenizer now needs to extends the abstract [`Tokenizer`](./src/tokenizers/tokenizer.ts) class, which itself is a wrapper around [🤗Tokenizers](https://github.com/huggingface/tokenizers).
 * The `cased` option is moved from the model instantiation to the `QAClient.fromOptions` method.
 
 ### Features
 
 * Added compatibility with BERT/RoBERTa based models
-* [12 new additional models](https://github.com/huggingface/node-question-answering/blob/master/README.md#models) available thanks to the [Hugging Face model hub](https://huggingface.co/models) and the NLP community
+* [12 new additional models](./README.md#models) available thanks to the [Hugging Face model hub](https://huggingface.co/models) and the NLP community
 * The model doesn't need to be downloaded through the CLI before running the code for the first time: if it's not present in the default (or specified) model directory, it will be automatically downloaded at runtime during initialization, along with vocabulary / tokenizer files.
 * [🤗Tokenizers](https://github.com/huggingface/tokenizers) now requires version `0.6.2`.
 
@@ -28,7 +28,8 @@ const qaClient = await QAClient.fromOptions({ model });
 After:
 ```typescript
 const model = await initModel({ name: "distilbert-uncased" });
-const qaClient = await QAClient.fromOptions({ model, cased: false }); // `cased` can be omitted: it will be inferred from the tokenizer configuration if possible, then from the name
+const qaClient = await QAClient.fromOptions({ model, cased: false });
+// `cased` can be omitted: it will be based on the tokenizer configuration if possible, otherwise inferred from the model name
 ```
 
 #### When using TFJS format

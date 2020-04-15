@@ -4,7 +4,7 @@
 
 #### Production-ready Question Answering directly in Node.js, with only 3 lines of code!
 
-This package leverages the power of the [tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then uses [TensorFlow.js](https://www.tensorflow.org/js) to run the [DistilBERT](https://arxiv.org/abs/1910.01108)-cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased). DistilBERT is used by default, but any other model from the [🤗Transformers](https://github.com/huggingface/transformers) library can be used in 3 additional lines of code!
+This package leverages the power of the [🤗Tokenizers](https://github.com/huggingface/tokenizers) library (built with Rust) to process the input text. It then uses [TensorFlow.js](https://www.tensorflow.org/js) to run the [DistilBERT](https://arxiv.org/abs/1910.01108)-cased model fine-tuned for Question Answering (87.1 F1 score on SQuAD v1.1 dev set, compared to 88.7 for BERT-base-cased). DistilBERT is used by default, but you can use [other models](#models) available in the [🤗Transformers](https://github.com/huggingface/transformers) library in one additional line of code!
 
 It can run models in SavedModel and TFJS formats locally, as well as [remote models](#remote-model) thanks to TensorFlow Serving.
 
@@ -14,7 +14,7 @@ It can run models in SavedModel and TFJS formats locally, as well as [remote mod
 npm install question-answering@latest
 ```
 
-## Simple example
+## Quickstart
 
 The following example will automatically download the default DistilBERT model in SavedModel format if not already present, along with the required vocabulary / tokenizer files. It will then run the model and return the answer to the `question`.
 
@@ -43,7 +43,7 @@ console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 <a name="models"></a>
 ### Using another model
 
-The above example internally makes use of the default DistilBERT-cased model in the SavedModel format. This library is also compatible with any other __DistilBERT__-based model, as long as any __BERT__-based and __RoBERTa__-based models, both in SavedModel format or TFJS format. The following list of models are available in SavedModel format from the [Hugging Face model hub](https://huggingface.co/models) thanks to the amazing NLP community 🤗:
+The above example internally makes use of the default DistilBERT-cased model in the SavedModel format. The library is also compatible with any other __DistilBERT__-based model, as well as any __BERT__-based and __RoBERTa__-based models, both in SavedModel and TFJS formats. The following models are available in SavedModel format from the [Hugging Face model hub](https://huggingface.co/models) thanks to the amazing NLP community 🤗:
 
 * [`bert-large-cased-whole-word-masking-finetuned-squad`](https://huggingface.co/bert-large-cased-whole-word-masking-finetuned-squad)
 * [`bert-large-uncased-whole-word-masking-finetuned-squad`](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)
@@ -128,11 +128,11 @@ You can choose to download the model and associated vocab file(s) manually using
 npx question-answering download deepset/roberta-base-squad2
 ```
 
-> By default, the model and vocabulary are downloaded inside a `.models` directory at the root of your project; you can provide a custom directory by using the `--dir` option of the CLI. You can also use `--format tfjs` to download a model in TFJS format (if available). To check all the options of the CLI: `npx question-answering download --help`.
+> By default, the files are downloaded inside a `.models` directory at the root of your project; you can provide a custom directory by using the `--dir` option of the CLI. You can also use `--format tfjs` to download a model in TFJS format (if available). To check all the options of the CLI: `npx question-answering download --help`.
 
 ### Using a custom tokenizer
 
-The `QAClient.fromOptions` params object has a `tokenizer` field which can either be a set of options relative to the tokenizer files, or an instance of a class extending the abstract [`Tokenizer`](https://github.com/huggingface/node-question-answering/blob/master/src/tokenizers/tokenizer.ts) class. To extend this class, you can create your own or, if you simply need to adjust some options, you can import and use the provided `initTokenizer` method, which will instantiate such a class for you.
+The `QAClient.fromOptions` params object has a `tokenizer` field which can either be a set of options relative to the tokenizer files, or an instance of a class extending the abstract [`Tokenizer`](./src/tokenizers/tokenizer.ts) class. To extend this class, you can create your own or, if you simply need to adjust some options, you can import and use the provided `initTokenizer` method, which will instantiate such a class for you.
 
 ## Performances
 
@@ -142,7 +142,7 @@ Specifically, here are the results of a benchmark using `question-answering` wit
 
 * Running entirely locally (both SavedModel and TFJS formats)
 * Using a (pseudo) remote model server (i.e. local Docker with TensorFlow Serving running the SavedModel format)
-* Using the Question Answering pipeline in the [`transformers`](https://github.com/huggingface/transformers) library.
+* Using the Question Answering pipeline in the [🤗Transformers](https://github.com/huggingface/transformers) library.
 
 ![QA benchmark chart](https://docs.google.com/spreadsheets/d/e/2PACX-1vRCprbDB9T8nwdOpRv2pmlOXWKw3vVOx5P2jbn7hipjCyaGRuQS3u5KWpE7ux5Q0jbqT9HFVMivkI4x/pubchart?oid=2051609279&format=image)
 _Shorts texts are texts between 500 and 1000 characters, long texts are between 4000 and 5000 characters. You can check the `question-answering` benchmark script [here](./scripts/benchmark.js) (the `transformers` one is equivalent). Benchmark run on a standard 2019 MacBook Pro running on macOS 10.15.2._
