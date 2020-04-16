@@ -1,7 +1,7 @@
 {
   "name": "question-answering",
-  "version": "3.0.0",
-  "description": "Question Answering in NodeJS using DistilBERT and TensorFlow.js",
+  "version": "3.0.0-rc.0",
+  "description": "Production-ready Question Answering directly in Node.js",
   "keywords": [
     "nlp",
     "question answering",
