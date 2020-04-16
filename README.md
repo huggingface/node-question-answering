@@ -146,3 +146,9 @@ Specifically, here are the results of a benchmark using `question-answering` wit
 
 ![QA benchmark chart](https://docs.google.com/spreadsheets/d/e/2PACX-1vRCprbDB9T8nwdOpRv2pmlOXWKw3vVOx5P2jbn7hipjCyaGRuQS3u5KWpE7ux5Q0jbqT9HFVMivkI4x/pubchart?oid=2051609279&format=image)
 _Shorts texts are texts between 500 and 1000 characters, long texts are between 4000 and 5000 characters. You can check the `question-answering` benchmark script [here](./scripts/benchmark.js) (the `transformers` one is equivalent). Benchmark run on a standard 2019 MacBook Pro running on macOS 10.15.2._
+
+## Troubleshooting
+
+### Errors when using Typescript
+
+There is a known incompatibility in the TFJS library with some types. If you encounter errors when building your project, make sure to pass the `--skipLibCheck` flag when using the Typescript CLI, or to add `skipLibCheck: true` to your `tsconfig.json` file under `compilerOptions`. See [here](https://github.com/tensorflow/tfjs/issues/2007) for more information.

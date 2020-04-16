@@ -1,6 +1,6 @@
 {
   "name": "question-answering",
-  "version": "3.0.0-rc.0",
+  "version": "3.0.0-rc.1",
   "description": "Production-ready Question Answering directly in Node.js",
   "keywords": [
     "nlp",
@@ -33,7 +33,7 @@
     "yargs": "^15.1.0"
   },
   "devDependencies": {
-    "@types/jest": "^24.9.1",
+    "@types/jest": "^25.2.1",
     "@typescript-eslint/eslint-plugin": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",
     "chalk": "^3.0.0",
@@ -42,13 +42,14 @@
     "eslint-plugin-jest": "^23.6.0",
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-simple-import-sort": "^5.0.0",
-    "jest": "^25.1.0",
+    "jest": "^25.3.0",
     "prettier": "^1.19.1",
-    "ts-jest": "^25.0.0",
+    "ts-jest": "^25.3.1",
     "typescript": "^3.8.3",
     "yargs-interactive": "^3.0.0"
   },
   "scripts": {
+    "dev": "rm -rf dist && tsc",
     "test": "jest",
     "lint": "eslint --fix --ext .js,.ts src scripts",
     "lint-check": "eslint --ext .js,.ts src scripts"
