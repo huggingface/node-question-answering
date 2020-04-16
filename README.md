@@ -83,7 +83,7 @@ console.log(answer); // { text: 'Denver Broncos', score: 0.46 }
 To use a TFJS model, you simply need to pass `tfjs` to the `runtime` param of `initModel` (defaults to `saved_model`):
 
 ```typescript
-const model = initModel({ name: "distilbert-base-cased-distilled-squad", runtime: RuntimeType.TFJS });
+const model = await initModel({ name: "distilbert-base-cased-distilled-squad", runtime: RuntimeType.TFJS });
 ```
 
 As with any SavedModel hosted in the HF model hub, the required files for the TFJS models will be automatically downloaded the first time. You can also download them manually [using the CLI](#cli).
