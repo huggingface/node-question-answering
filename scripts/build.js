@@ -61,7 +61,7 @@ async function npmPublish() {
   await ensureDir(buildPath);
   shell.cp(
     "-r",
-    [distPath, "package.json", "README.md", "LICENSE", "./scripts"],
+    [distPath, "package.json", "README.md", "LICENSE", "./scripts/cli.js"],
     buildPath
   );
 
