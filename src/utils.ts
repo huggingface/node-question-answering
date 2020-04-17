@@ -333,12 +333,12 @@ const HF_MODELS_MAPPING: Record<string, DefaultModel> = {
   /** DistilBERT */
   "distilbert-base-cased-distilled-squad": {
     [RuntimeType.SavedModel]:
-      "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-saved_model.tar.gz",
+      "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-saved_model.tar.gz",
     [RuntimeType.TFJS]:
-      "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-tfjs.tar.gz"
+      "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-tfjs.tar.gz"
   },
   "distilbert-base-uncased-distilled-squad": {
     [RuntimeType.SavedModel]:
-      "https://cdn.huggingface.co/distilbert-base-uncased-distilled-squad-384-saved_model.tar.gz"
+      "https://cdn.huggingface.co/distilbert-base-uncased-distilled-squad-saved_model.tar.gz"
   }
 };
