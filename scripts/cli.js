@@ -16,9 +16,8 @@ const MODELS_PARAMS = {
     subDir: "distilbert-cased",
     modelUrl: {
       saved_model:
-        "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-saved_model.tar.gz",
-      tfjs:
-        "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-384-tfjs.tar.gz"
+        "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-saved_model.tar.gz",
+      tfjs: "https://cdn.huggingface.co/distilbert-base-cased-distilled-squad-tfjs.tar.gz"
     },
     vocabUrl:
       "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-cased-vocab.txt"
@@ -27,7 +26,7 @@ const MODELS_PARAMS = {
     subDir: "distilbert-uncased",
     modelUrl: {
       saved_model:
-        "https://cdn.huggingface.co/distilbert-base-uncased-distilled-squad-384-saved_model.tar.gz"
+        "https://cdn.huggingface.co/distilbert-base-uncased-distilled-squad-saved_model.tar.gz"
     },
     vocabUrl:
       "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt"
