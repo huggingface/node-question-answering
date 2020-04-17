@@ -22,6 +22,10 @@ export async function ensureDir(dirPath: string, recursive = true): Promise<void
   }
 }
 
+export function isOneDimensional(arr: number[] | number[][]): arr is number[] {
+  return !Array.isArray(arr[0]);
+}
+
 export interface DownloadOptions {
   model: string;
   dir: string;

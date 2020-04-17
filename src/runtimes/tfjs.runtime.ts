@@ -2,9 +2,9 @@ import * as tf from "@tensorflow/tfjs-node";
 import * as path from "path";
 
 import { Logits, ModelInput } from "../models/model";
+import { isOneDimensional } from "../utils";
 import {
   FullParams,
-  isOneDimensional,
   ModelDefaults,
   PartialMetaGraph,
   Runtime,
