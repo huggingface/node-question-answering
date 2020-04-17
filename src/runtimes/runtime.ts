@@ -90,10 +90,6 @@ export abstract class Runtime {
   }
 }
 
-export function isOneDimensional(arr: number[] | number[][]): arr is number[] {
-  return !Array.isArray(arr[0]);
-}
-
 export interface ModelDefaults {
   inputsNames: Required<ModelInputsNames>;
   outputsNames: Required<ModelOutputNames>;

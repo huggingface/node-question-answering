@@ -2,7 +2,8 @@ import * as tf from "@tensorflow/tfjs-node";
 import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
 
 import { Logits, ModelInput } from "../models/model";
-import { FullParams, isOneDimensional, Runtime, RuntimeOptions } from "./runtime";
+import { isOneDimensional } from "../utils";
+import { FullParams, Runtime, RuntimeOptions } from "./runtime";
 
 export class SavedModel extends Runtime {
   private constructor(private model: TFSavedModel, params: Readonly<FullParams>) {

@@ -46,7 +46,7 @@ export function getModelType(modelName: string): ModelType {
   }
 
   throw new Error(
-    "Impossible to determine the type of the model. You can specify it manually by providing the `type` in the  options"
+    "Impossible to determine the type of the model. You can specify it manually by providing the `type` in the options"
   );
 }
 
