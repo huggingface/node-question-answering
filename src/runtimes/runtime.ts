@@ -105,6 +105,10 @@ export interface RuntimeOptions {
    * @default "serving_default"
    */
   signatureName?: string;
+  /**
+   * @default 5
+   */
+  workersMax?: number;
 }
 
 export interface RuntimeInputsNames {

@@ -1,0 +1,8 @@
+{
+  "version": "v1",
+  "packages": {
+    "@tensorflow/tfjs-node": {
+      "signature": "88f628e989c727fddf61dc0948be7aac"
+    }
+  }
+}

@@ -19,7 +19,7 @@
   "types": "./dist/index.d.ts",
   "bin": "./cli.js",
   "dependencies": {
-    "@tensorflow/tfjs-node": "^1.5.2",
+    "@tensorflow/tfjs-node": "^1.7.4",
     "@types/node": "^13.5.0",
     "@types/node-fetch": "^2.5.4",
     "@types/progress": "^2.0.3",

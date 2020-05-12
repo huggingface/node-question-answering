@@ -43,6 +43,10 @@ export class QAClient {
     private readonly timeIt?: boolean
   ) {}
 
+  get modelName(): string {
+    return this.model.name;
+  }
+
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
     const model = options?.model ?? (await initModel({ name: DEFAULT_MODEL_NAME }));
 

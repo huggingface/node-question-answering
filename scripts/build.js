@@ -47,7 +47,7 @@ async function buildTs() {
   // Cleanup the previous build, if it exists
   shell.rm("-rf", distPath);
 
-  shell.exec("npm ci --ignore-scripts");
+  // shell.exec("npm ci --ignore-scripts");
   await ensureDir(distPath);
   shell.exec("npx tsc -p tsconfig.prod.json");
 
@@ -66,7 +66,7 @@ async function npmPublish() {
   );
 
   // shell.exec(`npm pack ${buildPath}`);
-  shell.exec(`npm publish ${buildPath} --access public`);
+  shell.exec(`npm publish ${buildPath} --dry-run --access public`);
 
   shell.echo("PUBLISHING ON NPM COMPLETE...");
 }

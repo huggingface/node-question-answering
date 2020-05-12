@@ -59,7 +59,19 @@ export interface LocalModelOptions extends CommonModelOptions {
   runtime?: LocalRuntime;
 }
 
-export type ModelFactoryOptions = LocalModelOptions | RemoteModelOptions;
+export interface SavedModelOptions extends LocalModelOptions {
+  runtime: RuntimeType.SavedModel;
+  /**
+   * Nb max of workers to instantiate for this model (values <= 0 will be ignored)
+   * @default 5
+   */
+  workersMax?: number;
+}
+
+export type ModelFactoryOptions =
+  | LocalModelOptions
+  | SavedModelOptions
+  | RemoteModelOptions;
 
 export async function initModel(options: ModelFactoryOptions): Promise<Model> {
   const runtimeType = options.runtime ?? RuntimeType.SavedModel;
@@ -102,6 +114,12 @@ export async function initModel(options: ModelFactoryOptions): Promise<Model> {
     signatureName: options.signatureName
   };
 
+  if (isSavedModelOptions(options)) {
+    if (options.workersMax && options.workersMax > 0) {
+      runtimeOptions.workersMax = options.workersMax;
+    }
+  }
+
   let runtime: Runtime;
   switch (runtimeType) {
     case RuntimeType.Remote:
@@ -117,4 +135,8 @@ export async function initModel(options: ModelFactoryOptions): Promise<Model> {
   }
 
   return new ModelClass(options.name, modelDir, runtime);
+}
+
+function isSavedModelOptions(options: ModelFactoryOptions): options is SavedModelOptions {
+  return !options.runtime || options.runtime === RuntimeType.SavedModel;
 }
