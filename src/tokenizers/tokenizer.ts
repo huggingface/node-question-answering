@@ -35,7 +35,7 @@ export type FullTokenizerOptions<TokSpecificOptions> = TokenizerBaseOptions &
   Partial<TokSpecificOptions>;
 
 export abstract class Tokenizer<T extends BaseTokenizer<object> = BaseTokenizer<object>> {
-  constructor(protected tokenizer: T) {}
+  constructor(protected tokenizer: T) { }
 
   abstract getQuestionLength(encoding: Encoding): number;
 

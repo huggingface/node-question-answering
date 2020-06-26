@@ -37,11 +37,15 @@ export interface Answer {
 }
 
 export class QAClient {
+  public modelName: string;
+
   private constructor(
     private readonly model: Model,
     private readonly tokenizer: Tokenizer,
     private readonly timeIt?: boolean
-  ) {}
+  ) {
+    this.modelName = model.name;
+  }
 
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
     const model = options?.model ?? (await initModel({ name: DEFAULT_MODEL_NAME }));

@@ -11,6 +11,7 @@ import { robertaProcessing } from "tokenizers/bindings/post-processors";
 
 import { exists } from "../utils";
 import { FullTokenizerOptions, Tokenizer } from "./tokenizer";
+// import { robertaProcessing } from "tokenizers/dist/bindings/post-processors";
 
 export interface RobertaTokenizerOptions {
   clsToken: Token;
@@ -85,13 +86,13 @@ export class RobertaTokenizer extends Tokenizer<ByteLevelBPETokenizer> {
     const clsString = getTokenContent(clsToken);
     const postProcessor = robertaProcessing(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      [eosString, tokenizer.tokenToId(eosString)!],
+      [ eosString, tokenizer.tokenToId(eosString)! ],
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      [clsString, tokenizer.tokenToId(clsString)!]
+      [ clsString, tokenizer.tokenToId(clsString)! ]
     );
 
     tokenizer.setPostProcessor(postProcessor);
-    tokenizer.addSpecialTokens([clsToken, eosToken, maskToken, padToken, unkToken]);
+    tokenizer.addSpecialTokens([ clsToken, eosToken, maskToken, padToken, unkToken ]);
 
     return new RobertaTokenizer(tokenizer, {
       clsToken,

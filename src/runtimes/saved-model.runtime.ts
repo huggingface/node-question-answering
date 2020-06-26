@@ -3,11 +3,20 @@ import { TFSavedModel } from "@tensorflow/tfjs-node/dist/saved_model";
 
 import { Logits, ModelInput } from "../models/model";
 import { isOneDimensional } from "../utils";
+import { Pool } from "./pool-real";
 import { FullParams, Runtime, RuntimeOptions } from "./runtime";
+// import { Pool } from "./pool";
 
 export class SavedModel extends Runtime {
-  private constructor(private model: TFSavedModel, params: Readonly<FullParams>) {
+  private static pool = new Pool();
+  // private static worker = new SavedModelWorker();
+  // private worker: SavedModelWorker;
+
+  private constructor(params: Readonly<FullParams>) {
     super(params);
+    // SavedModel.worker.loadModel(params);
+    // this.worker = new SavedModelWorker(params);
+    SavedModel.pool.queueTask({ type: "load", params });
   }
 
   async runInference(
@@ -15,51 +24,104 @@ export class SavedModel extends Runtime {
     attentionMask: number[][],
     tokenTypeIds?: number[][]
   ): Promise<[Logits, Logits]> {
-    const result = tf.tidy(() => {
-      const inputTensor = tf.tensor(ids, undefined, "int32");
-      const maskTensor = tf.tensor(attentionMask, undefined, "int32");
+    // const result = tf.tidy(() => {
+    //   const batchIds = [
+    //     ids[0],
+    //     ids[0],
+    //     ids[0],
+    //     ids[0],
+    //     ids[0],
+    //     ids[0],
+    //     ids[0],
+    //     ids[0],
+    //     ids[0],
+    //     ids[0]
+    //   ];
+    //   const batchMask = [
+    //     attentionMask[0],
+    //     attentionMask[0],
+    //     attentionMask[0],
+    //     attentionMask[0],
+    //     attentionMask[0],
+    //     attentionMask[0],
+    //     attentionMask[0],
+    //     attentionMask[0],
+    //     attentionMask[0],
+    //     attentionMask[0]
+    //   ];
 
-      const modelInputs = {
-        [this.params.inputsNames[ModelInput.Ids]]: inputTensor,
-        [this.params.inputsNames[ModelInput.AttentionMask]]: maskTensor
-      };
+    //   const inputTensor = tf.tensor(batchIds, undefined, "int32");
+    //   const maskTensor = tf.tensor(batchMask, undefined, "int32");
 
-      if (tokenTypeIds && this.params.inputsNames[ModelInput.TokenTypeIds]) {
-        const tokenTypesTensor = tf.tensor(tokenTypeIds, undefined, "int32");
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        modelInputs[this.params.inputsNames[ModelInput.TokenTypeIds]!] = tokenTypesTensor;
+    //   const modelInputs = {
+    //     [this.params.inputsNames[ModelInput.Ids]]: inputTensor,
+    //     [this.params.inputsNames[ModelInput.AttentionMask]]: maskTensor
+    //   };
+
+    //   if (tokenTypeIds && this.params.inputsNames[ModelInput.TokenTypeIds]) {
+    //     const batchTypes = [
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0],
+    //       tokenTypeIds[0]
+    //     ];
+    //     const tokenTypesTensor = tf.tensor(batchTypes, undefined, "int32");
+    //     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    //     modelInputs[this.params.inputsNames[ModelInput.TokenTypeIds]!] = tokenTypesTensor;
+    //   }
+
+    //   return this.model.predict(modelInputs) as tf.NamedTensorMap;
+    // });
+
+    // let [startLogits, endLogits] = await Promise.all([
+    //   result[this.params.outputsNames.startLogits].squeeze().array() as Promise<
+    //     number[] | number[][]
+    //   >,
+    //   result[this.params.outputsNames.endLogits].squeeze().array() as Promise<
+    //     number[] | number[][]
+    //   >
+    // ]);
+
+    // tf.dispose(result);
+
+    // if (isOneDimensional(startLogits)) {
+    //   startLogits = [startLogits];
+    // }
+
+    // if (isOneDimensional(endLogits)) {
+    //   endLogits = [endLogits];
+    // }
+
+    // return [startLogits, endLogits];
+
+    // return this.worker.queueInference(
+    return SavedModel.pool.queueTask({
+      type: "infer",
+      path: this.params.path,
+      inputs: {
+        ids,
+        attentionMask,
+        tokenTypeIds
       }
-
-      return this.model.predict(modelInputs) as tf.NamedTensorMap;
+      // this.params.path,
+      // ids,
+      // attentionMask,
+      // tokenTypeIds
     });
-
-    let [startLogits, endLogits] = await Promise.all([
-      result[this.params.outputsNames.startLogits].squeeze().array() as Promise<
-        number[] | number[][]
-      >,
-      result[this.params.outputsNames.endLogits].squeeze().array() as Promise<
-        number[] | number[][]
-      >
-    ]);
-
-    tf.dispose(result);
-
-    if (isOneDimensional(startLogits)) {
-      startLogits = [startLogits];
-    }
-
-    if (isOneDimensional(endLogits)) {
-      endLogits = [endLogits];
-    }
-
-    return [startLogits, endLogits];
   }
 
   static async fromOptions(options: RuntimeOptions): Promise<SavedModel> {
     const modelGraph = (await tf.node.getMetaGraphsFromSavedModel(options.path))[0];
     const fullParams = this.computeParams(options, modelGraph);
 
-    const model = await tf.node.loadSavedModel(options.path);
-    return new SavedModel(model, fullParams);
+    // const model = await tf.node.loadSavedModel(options.path);
+    // const worker = await SavedModelWorker.fromOptions(fullParams);
+    return new SavedModel(fullParams);
   }
 }

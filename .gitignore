@@ -2,6 +2,7 @@ build
 assets
 .models
 .vscode
+.yalc
 
 *.DS_Store
 
