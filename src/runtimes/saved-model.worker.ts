@@ -2,7 +2,6 @@ import { join as joinPaths } from "path";
 import { MessageChannel, MessagePort, SHARE_ENV, Worker } from "worker_threads";
 
 import { Logits } from "../models/model";
-import { ROOT_DIR } from "../qa-options";
 import { FullParams } from "./runtime";
 import { InferenceMessage, InitMessage } from "./worker-message";
 
@@ -36,7 +35,7 @@ export class SavedModelWorker extends Worker {
   private taskId = 0;
 
   constructor() {
-    super(joinPaths(ROOT_DIR, "runtimes/saved-model.worker-thread.js"), {
+    super(joinPaths(__filename, "../saved-model.worker-thread.js"), {
       env: SHARE_ENV
     });
 
