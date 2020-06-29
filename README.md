@@ -152,3 +152,7 @@ _Shorts texts are texts between 500 and 1000 characters, long texts are between 
 ### Errors when using Typescript
 
 There is a known incompatibility in the TFJS library with some types. If you encounter errors when building your project, make sure to pass the `--skipLibCheck` flag when using the Typescript CLI, or to add `skipLibCheck: true` to your `tsconfig.json` file under `compilerOptions`. See [here](https://github.com/tensorflow/tfjs/issues/2007) for more information.
+
+### `Tensor not referenced` when running SavedModel
+
+Due to a [bug in TFJS](https://github.com/tensorflow/tfjs/issues/3463), the use of `@tensorflow/tfjs-node` to load or execute SavedModel models independently from the library is not recommended for now, since it could overwrite the TF backend used internally by the library. In the case where you would have to do so, make sure to require _both_ `question-answering` _and_ `@tensorflow/tfjs-node` in your code __before making any use of either of them__.
