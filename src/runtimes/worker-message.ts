@@ -1,36 +1,32 @@
 import { MessagePort } from "worker_threads";
 
-import { ModelOutputNames } from "../models/model";
-import { RuntimeInputsNames } from "./runtime";
+import { FullParams } from "./runtime";
 
 export interface BaseMessage {
-  messageType: "load" | "infer";
+  type: "load" | "infer" | "init";
 }
 
 export interface InferenceMessage extends BaseMessage {
-  messageType: "infer";
-  ids: number[][];
-  attentionMask: number[][];
-  tokenTypeIds?: number[][];
+  _id: number;
+  inputs: {
+    ids: number[][];
+    attentionMask: number[][];
+    tokenTypeIds?: number[][];
+  };
+  model: string;
+  type: "infer";
 }
 
 export interface LoadMessage extends BaseMessage {
-  messageType: "load";
+  params: FullParams;
+  type: "load";
+}
+
+export interface InitMessage extends BaseMessage {
+  inferencePort: MessagePort;
   initPort: MessagePort;
-  params: WorkerParams;
-  sessionId: number;
+  loadPort: MessagePort;
+  type: "init";
 }
 
-export type Message = LoadMessage | InferenceMessage;
-
-export interface LoadingStatus {
-  status: "loaded";
-}
-
-export interface WorkerParams {
-  inputsNames: RuntimeInputsNames;
-  outputsNames: Required<ModelOutputNames>;
-  tfInputsNames: Record<string, string>;
-  tfOutputsNames: Record<string, string>;
-  path: string;
-}
+export type Message = LoadMessage | InferenceMessage | InitMessage;
