@@ -4,6 +4,7 @@ This version introduces full support for any DistilBERT/BERT/RoBERTa based model
 
 ### BREAKING CHANGES
 
+* Nodejs v12 is now the minimum required version if using SavedModel format: for this model format, the library now makes use of a [worker thread](https://nodejs.org/docs/latest-v12.x/api/worker_threads.html) internally to provide full non-blocking processing of prediction requests, a feature that is only supported fully starting in version 12.
 * The model-specific instantiation methods are removed and replaced by a single `initModel` method paired with a `runtime` field which can either be `tfjs`, `saved_model` or `remote`.
 * When passing a tokenizer to `QAClient.fromOptions`, the tokenizer now needs to extends the abstract [`Tokenizer`](./src/tokenizers/tokenizer.ts) class, which itself is a wrapper around [🤗Tokenizers](https://github.com/huggingface/tokenizers).
 * The `cased` option is moved from the model instantiation to the `QAClient.fromOptions` method.
@@ -31,6 +32,8 @@ const model = await initModel({ name: "distilbert-uncased" });
 const qaClient = await QAClient.fromOptions({ model, cased: false });
 // `cased` can be omitted: it will be based on the tokenizer configuration if possible, otherwise inferred from the model name
 ```
+
+> ⚠️ Warning: due to a [bug in TFJS](https://github.com/tensorflow/tfjs/issues/3463), the use of `@tensorflow/tfjs-node` to load or execute SavedModel models independently from the library is not recommended for now, since it could overwrite the TF backend used internally by the library. In the case where you would have to do so, make sure to require _both_ `question-answering` _and_ `@tensorflow/tfjs-node` in your code __before making any use of either of them__.
 
 #### When using TFJS format
 
