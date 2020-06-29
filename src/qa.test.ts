@@ -5,7 +5,7 @@ import { initModel } from "./models";
 import { RuntimeType } from "./runtimes";
 import { Tokenizer } from "./tokenizers";
 
-const basicQuestion = "Who won the Super Bowl?";
+const basicQuestion = "What was the final score?";
 const basicContext = `
   Super Bowl 50 was an American football game to determine the champion of the National Football League (NFL) for the 2015 season.
   The American Football Conference (AFC) champion Denver Broncos defeated the National Football Conference (NFC) champion Carolina Panthers 24–10 to earn their third Super Bowl title. The game was played on February 7, 2016, at Levi's Stadium in the San Francisco Bay Area at Santa Clara, California.
@@ -62,9 +62,9 @@ describe("QAClient", () => {
         At his father's death on 16 September 1380, Charles VI inherited the throne of France. His coronation took place on 4 November 1380, at Reims Cathedral. Charles VI was only 11 years old when he was crowned King of France. During his minority, France was ruled by Charles' uncles, as regents. Although the royal age of majority was 14 (the "age of accountability" under Roman Catholic canon law), Charles terminated the regency only at the age of 21.
 
         The regents were Philip the Bold, Duke of Burgundy, Louis I, Duke of Anjou, and John, Duke of Berry – all brothers of Charles V – along with Louis II, Duke of Bourbon, Charles VI's maternal uncle. Philip took the dominant role during the regency. Louis of Anjou was fighting for his claim to the Kingdom of Naples after 1382, dying in 1384; John of Berry was interested mainly in the Languedoc, and not particularly interested in politics; and Louis of Bourbon was a largely unimportant figure, owing to his personality (showing signs of mental instability) and status (since he was not the son of a king).
-        
+
         During the rule of his uncles, the financial resources of the kingdom, painstakingly built up by his father, were squandered for the personal profit of the dukes, whose interests were frequently divergent or even opposing. During that time, the power of the royal administration was strengthened and taxes re-established. The latter policy represented a reversal of the deathbed decision of the king's father Charles V to repeal taxes, and led to tax revolts, known as the Harelle. Increased tax revenues were needed to support the self-serving policies of the king's uncles, whose interests were frequently in conflict with those of the crown and with each other. The Battle of Roosebeke (1382), for example, brilliantly won by the royal troops, was prosecuted solely for the benefit of Philip of Burgundy. The treasury surplus carefully accumulated by Charles V was quickly squandered.
-        
+
         Charles VI brought the regency to an end in 1388, taking up personal rule. He restored to power the highly competent advisors of Charles V, known as the Marmousets, who ushered in a new period of high esteem for the crown. Charles VI was widely referred to as Charles the Beloved by his subjects.
 
         He married Isabeau of Bavaria on 17 July 1385, when he was 17 and she 14 (and considered an adult at the time). Isabeau had 12 children, most of whom died young. Isabeau's first child, named Charles, was born in 1386, and was Dauphin of Viennois (heir apparent), but survived only 3 months. Her second child, Joan, was born on 14 June 1388, but died in 1390. Her third child, Isabella, was born in 1389. She was married to Richard II, King of England in 1396, at the age of 6, and became Queen of England. Richard died in 1400 and they had no children. Richard's successor, Henry IV, wanted Isabella then to marry his son, 14-year-old future king Henry V, but she refused. She was married again in 1406, this time to her cousin, Charles, Duke of Orléans, at the age of 17. She died in childbirth at the age of 19.
@@ -98,6 +98,13 @@ describe("QAClient", () => {
           expect(result?.text).toEqual(question[1]);
         });
       }
+
+      it("is non-blocking", async () => {
+        const mockCb = jest.fn();
+        qa.predict(basicQuestion, basicContext).then(mockCb);
+        await new Promise(r => setTimeout(r, 0));
+        expect(mockCb).not.toHaveBeenCalled();
+      });
     });
 
     describe("using TFJS format", () => {
@@ -124,3 +131,33 @@ describe("QAClient", () => {
     });
   });
 });
+
+it("supports big charge", async done => {
+  const qaClientOne = await QAClient.fromOptions();
+  const model = await initModel({ name: "deepset/roberta-base-squad2" });
+  const qaClientTwo = await QAClient.fromOptions({ model });
+
+  await qaClientOne.predict(basicQuestion, basicContext);
+  await qaClientTwo.predict(basicQuestion, basicContext);
+
+  let cbCount = 0;
+  function callback(): void {
+    if (++cbCount === 120) {
+      done();
+    }
+  }
+
+  for (let index = 0; index < 20; index++) {
+    for (const qaClient of [qaClientOne, qaClientTwo]) {
+      qaClient.predict(basicQuestion, basicContext).then(callback);
+      qaClient.predict("What was the final score?", basicContext).then(callback);
+      qaClient.predict("When was the game played?", basicContext).then(callback);
+    }
+  }
+
+  const beforePromise = Date.now();
+  await new Promise(r => setTimeout(r, 3000));
+  const afterPromise = Date.now();
+
+  expect(afterPromise - beforePromise).toBeLessThan(3100);
+}, 60000);
