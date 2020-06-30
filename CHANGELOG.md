@@ -12,7 +12,7 @@ This version introduces full support for any DistilBERT/BERT/RoBERTa based model
 ### Features
 
 * Added compatibility with BERT/RoBERTa based models
-* [12 new additional models](./README.md#models) available thanks to the [Hugging Face model hub](https://huggingface.co/models) and the NLP community
+* [15 new additional models](./README.md#models) available thanks to the [Hugging Face model hub](https://huggingface.co/models) and the NLP community
 * The model doesn't need to be downloaded through the CLI before running the code for the first time: if it's not present in the default (or specified) model directory, it will be automatically downloaded at runtime during initialization, along with vocabulary / tokenizer files.
 * [🤗Tokenizers](https://github.com/huggingface/tokenizers) now requires version `0.6.2`.
 

@@ -45,6 +45,8 @@ console.log(answer); // { text: 'Denver Broncos', score: 0.3 }
 
 The above example internally makes use of the default DistilBERT-cased model in the SavedModel format. The library is also compatible with any other __DistilBERT__-based model, as well as any __BERT__-based and __RoBERTa__-based models, both in SavedModel and TFJS formats. The following models are available in SavedModel format from the [Hugging Face model hub](https://huggingface.co/models) thanks to the amazing NLP community 🤗:
 
+* [`a-ware/mobilebert-squadv2`](https://huggingface.co/a-ware/mobilebert-squadv2)
+* [`a-ware/roberta-large-squadv2`](https://huggingface.co/a-ware/roberta-large-squadv2)
 * [`bert-large-cased-whole-word-masking-finetuned-squad`](https://huggingface.co/bert-large-cased-whole-word-masking-finetuned-squad)
 * [`bert-large-uncased-whole-word-masking-finetuned-squad`](https://huggingface.co/bert-large-uncased-whole-word-masking-finetuned-squad)
 * [`deepset/bert-base-cased-squad2`](https://huggingface.co/deepset/bert-base-cased-squad2)
@@ -58,6 +60,7 @@ The above example internally makes use of the default DistilBERT-cased model in 
 * [`mrm8488/bert-base-spanish-wwm-cased-finetuned-spa-squad2-es`](https://huggingface.co/mrm8488/bert-base-spanish-wwm-cased-finetuned-spa-squad2-es)
 * [`mrm8488/distill-bert-base-spanish-wwm-cased-finetuned-spa-squad2-es`](https://huggingface.co/mrm8488/distill-bert-base-spanish-wwm-cased-finetuned-spa-squad2-es)
 * [`mrm8488/spanbert-finetuned-squadv2`](https://huggingface.co/mrm8488/spanbert-finetuned-squadv2)
+* [`NeuML/bert-small-cord19qa`](https://huggingface.co/NeuML/bert-small-cord19qa)
 * [`twmkn9/bert-base-uncased-squad2`](https://huggingface.co/twmkn9/bert-base-uncased-squad2)
 
 To specify a model to use with the library, you need to instantiate a model class that you'll then pass to the `QAClient`:
