@@ -35,7 +35,7 @@ export type FullTokenizerOptions<TokSpecificOptions> = TokenizerBaseOptions &
   Partial<TokSpecificOptions>;
 
 export abstract class Tokenizer<T extends BaseTokenizer<object> = BaseTokenizer<object>> {
-  constructor(protected tokenizer: T) { }
+  constructor(protected tokenizer: T) {}
 
   abstract getQuestionLength(encoding: Encoding): number;
 
@@ -55,7 +55,7 @@ export abstract class Tokenizer<T extends BaseTokenizer<object> = BaseTokenizer<
   }
 
   encode(sequence: string, pair?: string, addSpecialTokens = true): Promise<Encoding> {
-    return this.tokenizer.encode(sequence, pair, addSpecialTokens);
+    return this.tokenizer.encode(sequence, pair, { addSpecialTokens });
   }
 
   /**
