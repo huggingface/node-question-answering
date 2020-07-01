@@ -77,7 +77,8 @@ export class RobertaTokenizer extends Tokenizer<ByteLevelBPETokenizer> {
 
     const clsToken = options.clsToken ?? "<s>";
     const eosToken = options.eosToken ?? "</s>";
-    const maskToken = options.maskToken ?? new AddedToken("<mask>", { leftStrip: true });
+    const maskToken =
+      options.maskToken ?? new AddedToken("<mask>", true, { leftStrip: true });
     const padToken = options.padToken ?? "<pad>";
     const unkToken = options.unkToken ?? "<unk>";
 
