@@ -8,6 +8,7 @@ import { TFJS } from "../runtimes/tfjs.runtime";
 import { downloadModel, getAbsolutePath } from "../utils";
 import { BertModel } from "./bert.model";
 import { DistilbertModel } from "./distilbert.model";
+import { ElectraModel } from "./electra.model";
 import {
   getModelType,
   Model,
@@ -80,8 +81,17 @@ export async function initModel(options: ModelFactoryOptions): Promise<Model> {
   }
 
   const modelType = options.type ?? getModelType(options.name);
-  let ModelClass: typeof BertModel | typeof DistilbertModel | typeof RobertaModel;
+  let ModelClass:
+    | typeof BertModel
+    | typeof DistilbertModel
+    | typeof RobertaModel
+    | typeof ElectraModel;
+
   switch (modelType) {
+    case ModelType.Electra:
+      ModelClass = ElectraModel;
+      break;
+
     case ModelType.Roberta:
       ModelClass = RobertaModel;
       break;

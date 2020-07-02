@@ -44,7 +44,7 @@ export interface RobertaTokenizerFactoryOptions
 export interface BertTokenizerFactoryOptions
   extends TokenizerFactoryBaseOptions,
     Partial<RobertaTokenizerOptions> {
-  modelType?: ModelType.Bert | ModelType.Distilbert;
+  modelType?: ModelType.Bert | ModelType.Distilbert | ModelType.Electra;
 }
 
 export type TokenizerFactoryOptions =

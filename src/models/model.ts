@@ -10,6 +10,7 @@ export enum ModelInput {
 
 export enum ModelType {
   Distilbert = "distilbert",
+  Electra = "electra",
   Roberta = "roberta",
   Bert = "bert" // AFTER roberta, to be sure model type inference works
 }
