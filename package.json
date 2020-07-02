@@ -1,7 +1,7 @@
 {
   "name": "question-answering",
-  "version": "2.0.1",
-  "description": "Question Answering in NodeJS using DistilBERT and TensorFlow.js",
+  "version": "3.0.0-rc.4",
+  "description": "Production-ready Question Answering directly in Node.js",
   "keywords": [
     "nlp",
     "question answering",
@@ -17,37 +17,41 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": "./scripts/cli.js",
+  "bin": "./cli.js",
   "dependencies": {
-    "@tensorflow/tfjs-node": "^1.5.2",
+    "@tensorflow/tfjs-node": "^2.0.1",
     "@types/node": "^13.5.0",
     "@types/node-fetch": "^2.5.4",
+    "@types/progress": "^2.0.3",
+    "@types/shelljs": "^0.8.7",
+    "@types/tar": "^4.0.3",
     "node-fetch": "^2.6.0",
     "progress": "^2.0.3",
     "shelljs": "^0.8.3",
     "tar": "^5.0.5",
-    "tokenizers": "^0.5.0",
+    "tokenizers": "^0.7.0",
     "yargs": "^15.1.0"
   },
   "devDependencies": {
-    "@types/jest": "^24.9.1",
+    "@types/jest": "^26.0.3",
     "@typescript-eslint/eslint-plugin": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",
-    "chalk": "^3.0.0",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-jest": "^23.6.0",
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-simple-import-sort": "^5.0.0",
-    "jest": "^25.1.0",
+    "jest": "^26.1.0",
     "prettier": "^1.19.1",
-    "ts-jest": "^25.0.0",
-    "typescript": "^3.8.3",
+    "ts-jest": "^26.1.1",
+    "typescript": "^3.9.6",
     "yargs-interactive": "^3.0.0"
   },
   "scripts": {
+    "dev": "rm -rf dist && npx tsc",
     "test": "jest",
-    "lint": "eslint --fix --ext .js,.ts src scripts"
+    "lint": "eslint --fix --ext .js,.ts src scripts",
+    "lint-check": "eslint --ext .js,.ts src scripts"
   },
   "engines": {
     "node": ">=10 < 11 || >=12 <14"

@@ -1,21 +1,19 @@
 import * as tf from "@tensorflow/tfjs-node";
-import { exists } from "fs";
 import * as path from "path";
-import { promisify } from "util";
 
-import { DEFAULT_ASSETS_PATH } from "../qa-options";
+import { Logits, ModelInput } from "../models/model";
+import { isOneDimensional } from "../utils";
 import {
-  isOneDimensional,
-  Model,
+  FullParams,
   ModelDefaults,
-  ModelOptions,
-  ModelParams,
-  PartialMetaGraph
-} from "./model";
+  PartialMetaGraph,
+  Runtime,
+  RuntimeOptions
+} from "./runtime";
 
-export class TFJSModel extends Model {
-  private constructor(private model: tf.GraphModel, public params: ModelParams) {
-    super();
+export class TFJS extends Runtime {
+  private constructor(private model: tf.GraphModel, params: Readonly<FullParams>) {
+    super(params);
   }
 
   protected static get defaults(): Readonly<ModelDefaults> {
@@ -30,16 +28,25 @@ export class TFJSModel extends Model {
 
   async runInference(
     ids: number[][],
-    attentionMask: number[][]
-  ): Promise<[number[][], number[][]]> {
+    attentionMask: number[][],
+    tokenTypeIds?: number[][]
+  ): Promise<[Logits, Logits]> {
     const result = tf.tidy(() => {
       const inputTensor = tf.tensor(ids, undefined, "int32");
       const maskTensor = tf.tensor(attentionMask, undefined, "int32");
 
-      return this.model.predict({
-        [this.params.inputsNames.ids]: inputTensor,
-        [this.params.inputsNames.attentionMask]: maskTensor
-      }) as tf.Tensor[];
+      const modelInputs = {
+        [this.params.inputsNames[ModelInput.Ids]]: inputTensor,
+        [this.params.inputsNames[ModelInput.AttentionMask]]: maskTensor
+      };
+
+      if (tokenTypeIds && this.params.inputsNames[ModelInput.TokenTypeIds]) {
+        const tokenTypesTensor = tf.tensor(tokenTypeIds, undefined, "int32");
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        modelInputs[this.params.inputsNames[ModelInput.TokenTypeIds]!] = tokenTypesTensor;
+      }
+
+      return this.model.predict(modelInputs) as tf.Tensor[];
     });
 
     let [startLogits, endLogits] = await Promise.all([
@@ -60,12 +67,10 @@ export class TFJSModel extends Model {
     return [startLogits, endLogits];
   }
 
-  static async fromOptions(options: ModelOptions): Promise<TFJSModel> {
-    options.path = (await promisify(exists)(options.path))
-      ? options.path
-      : path.join(DEFAULT_ASSETS_PATH, options.path, "tfjs");
+  static async fromOptions(options: RuntimeOptions): Promise<TFJS> {
+    const fullPath = path.join(options.path, "tfjs");
 
-    const model = await tf.loadGraphModel(`file:///${options.path}/model.json`);
+    const model = await tf.loadGraphModel(`file:///${fullPath}/model.json`);
     const modelGraph: PartialMetaGraph = {
       signatureDefs: {
         [options.signatureName ?? "serving_default"]: {
@@ -78,7 +83,7 @@ export class TFJSModel extends Model {
       }
     };
 
-    const fullParams = this.computeParams(options, modelGraph);
-    return new TFJSModel(model, fullParams);
+    const fullParams = this.computeParams({ ...options, path: fullPath }, modelGraph);
+    return new TFJS(model, fullParams);
   }
 }

@@ -1,5 +1,8 @@
-const chalk = require("chalk");
+#!/usr/bin/env node
+//@ts-check
+
 const yargsInteractive = require("yargs-interactive");
+
 const QAClient = require("../dist/qa").QAClient;
 
 const texts = {
@@ -45,15 +48,17 @@ const options = {
 
   yargsInteractive()
     .usage("$0 <command> [args]")
+    // @ts-ignore
     .interactive(options)
     .then(async result => {
       const context = texts[result.subject];
-      console.log(
-        chalk.cyan("\nLooking for an answer in the following text:\n"),
-        context
-      );
+      console.log(cyan("\nLooking for an answer in the following text:\n"), context);
 
       const answer = await qa.predict(result.question, context);
-      console.log(chalk.cyan("Predicted answer:"), answer.text);
+      console.log(cyan("Predicted answer:"), answer.text);
     });
 })();
+
+function cyan(text) {
+  return `\u001b[36m${text}\u001b[0m`;
+}

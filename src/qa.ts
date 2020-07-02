@@ -1,27 +1,18 @@
-import { exists as fsExists } from "fs";
-import path from "path";
-import { BertWordPieceTokenizer, Encoding, TruncationStrategy } from "tokenizers";
-import { promisify } from "util";
+import { Encoding, slice, TruncationStrategy } from "tokenizers";
 
-import { Model } from "./models/model";
-import { SavedModel } from "./models/saved-model.model";
-import {
-  DEFAULT_ASSETS_PATH,
-  DEFAULT_MODEL_PATH,
-  DEFAULT_VOCAB_PATH,
-  QAOptions
-} from "./qa-options";
+import { Logits, Model } from "./models/model";
+import { initModel } from "./models/model.factory";
+import { DEFAULT_MODEL_NAME, QAOptions } from "./qa-options";
+import { Tokenizer } from "./tokenizers/tokenizer";
+import { initTokenizer, TokenizerFactoryOptions } from "./tokenizers/tokenizer.factory";
 
 interface Feature {
-  contextLength: number;
   contextStartIndex: number;
   encoding: Encoding;
   maxContextMap: ReadonlyMap<number, boolean>;
 }
 
 interface Span {
-  contextLength: number;
-  contextStartIndex: number;
   length: number;
   startIndex: number;
 }
@@ -46,41 +37,36 @@ export interface Answer {
 }
 
 export class QAClient {
+  public modelName: string;
+
   private constructor(
     private readonly model: Model,
-    private readonly tokenizer: BertWordPieceTokenizer,
+    private readonly tokenizer: Tokenizer,
     private readonly timeIt?: boolean
-  ) {}
+  ) {
+    this.modelName = model.name;
+  }
 
   static async fromOptions(options?: QAOptions): Promise<QAClient> {
-    const model =
-      options?.model ??
-      (await SavedModel.fromOptions({ path: DEFAULT_MODEL_PATH, cased: true }));
+    const model = options?.model ?? (await initModel({ name: DEFAULT_MODEL_NAME }));
 
-    let tokenizer: BertWordPieceTokenizer;
-    if (options?.tokenizer) {
+    let tokenizer: Tokenizer;
+    if (options?.tokenizer instanceof Tokenizer) {
       tokenizer = options.tokenizer;
     } else {
-      let vocabPath = options?.vocabPath;
-      if (!vocabPath) {
-        if (options?.model?.params.path) {
-          const existsAsync = promisify(fsExists);
-          const fullPath = (await existsAsync(options.model.params.path))
-            ? path.join(options.model.params.path, "vocab.txt")
-            : path.join(DEFAULT_ASSETS_PATH, options.model.params.path, "vocab.txt");
+      const tokenizerOptions: TokenizerFactoryOptions = {
+        filesDir: options?.tokenizer?.filesDir ?? model.path,
+        modelName: model.name,
+        modelType: model.type,
+        mergesFile: options?.tokenizer?.mergesFile,
+        vocabFile: options?.tokenizer?.vocabFile
+      };
 
-          if (await existsAsync(fullPath)) {
-            vocabPath = fullPath;
-          }
-        }
-
-        vocabPath = vocabPath ?? DEFAULT_VOCAB_PATH;
+      if (typeof options?.cased !== "undefined") {
+        tokenizerOptions.lowercase = !options.cased;
       }
 
-      tokenizer = await BertWordPieceTokenizer.fromOptions({
-        vocabFile: vocabPath,
-        lowercase: !model.params.cased
-      });
+      tokenizer = await initTokenizer(tokenizerOptions);
     }
 
     return new QAClient(model, tokenizer, options?.timeIt);
@@ -96,14 +82,19 @@ export class QAClient {
 
     const inferenceStartTime = Date.now();
     const [startLogits, endLogits] = await this.model.runInference(
-      features.map(f => f.encoding.ids),
-      features.map(f => f.encoding.attentionMask)
+      features.map(f => f.encoding)
     );
     const elapsedInferenceTime = Date.now() - inferenceStartTime;
 
-    const answer = this.getAnswer(features, startLogits, endLogits, maxAnswerLength);
-    const totalElapsedTime = Date.now() - totalStartTime;
+    const answer = this.getAnswer(
+      context,
+      features,
+      startLogits,
+      endLogits,
+      maxAnswerLength
+    );
 
+    const totalElapsedTime = Date.now() - totalStartTime;
     if (this.timeIt) {
       return {
         ...answer,
@@ -120,8 +111,8 @@ export class QAClient {
     context: string,
     stride = 128
   ): Promise<Feature[]> {
-    this.tokenizer.setPadding({ maxLength: this.model.params.shape[1] });
-    this.tokenizer.setTruncation(this.model.params.shape[1], {
+    this.tokenizer.setPadding(this.model.inputLength);
+    this.tokenizer.setTruncation(this.model.inputLength, {
       strategy: TruncationStrategy.OnlySecond,
       stride
     });
@@ -129,28 +120,17 @@ export class QAClient {
     const encoding = await this.tokenizer.encode(question, context);
     const encodings = [encoding, ...encoding.overflowing];
 
-    const questionLength =
-      encoding.tokens.indexOf(this.tokenizer.configuration.sepToken) - 1; // Take [CLS] into account
-    const questionLengthWithTokens = questionLength + 2;
+    const spans: Span[] = encodings.map((e, i) => ({
+      startIndex: (this.model.inputLength - stride) * i,
+      length: this.model.inputLength
+    }));
 
-    const spans: Span[] = encodings.map((e, i) => {
-      const nbAddedTokens = e.specialTokensMask.reduce((acc, val) => acc + val, 0);
-      const actualLength = e.length - nbAddedTokens;
-
-      return {
-        startIndex: i * stride,
-        contextStartIndex: questionLengthWithTokens,
-        contextLength: actualLength - questionLength,
-        length: actualLength
-      };
-    });
-
+    const contextStartIndex = this.tokenizer.getContextStartIndex(encoding);
     return spans.map<Feature>((s, i) => {
-      const maxContextMap = getMaxContextMap(spans, i, stride, questionLengthWithTokens);
+      const maxContextMap = getMaxContextMap(spans, i, contextStartIndex);
 
       return {
-        contextLength: s.contextLength,
-        contextStartIndex: s.contextStartIndex,
+        contextStartIndex,
         encoding: encodings[i],
         maxContextMap: maxContextMap
       };
@@ -158,9 +138,10 @@ export class QAClient {
   }
 
   private getAnswer(
+    context: string,
     features: Feature[],
-    startLogits: number[][],
-    endLogits: number[][],
+    startLogits: Logits,
+    endLogits: Logits,
     maxAnswerLength: number
   ): Answer | null {
     const answers: {
@@ -177,10 +158,10 @@ export class QAClient {
       const starts = startLogits[i];
       const ends = endLogits[i];
 
-      const contextLastIndex = feature.contextStartIndex + feature.contextLength - 1;
+      const contextLastIndex = this.tokenizer.getContextEndIndex(feature.encoding);
       const [filteredStartLogits, filteredEndLogits] = [starts, ends].map(logits =>
         logits
-          .slice(feature.contextStartIndex, contextLastIndex)
+          .slice(feature.contextStartIndex, contextLastIndex + 1)
           .map<[number, number]>((val, i) => [i + feature.contextStartIndex, val])
       );
 
@@ -219,7 +200,9 @@ export class QAClient {
 
     const answer = answers.sort((a, b) => b.score - a.score)[0];
     const offsets = answer.feature.encoding.offsets;
-    const answerText = features[0].encoding.getOriginalString(
+
+    const answerText = slice(
+      context,
       offsets[answer.startIndex][0],
       offsets[answer.endIndex][1]
     );
@@ -229,7 +212,7 @@ export class QAClient {
     const probScore = startProbs[answer.startIndex] * endProbs[answer.endIndex];
 
     return {
-      text: answerText,
+      text: answerText.trim(),
       score: Math.round((probScore + Number.EPSILON) * 100) / 100
     };
   }
@@ -238,15 +221,14 @@ export class QAClient {
 function getMaxContextMap(
   spans: Span[],
   spanIndex: number,
-  stride: number,
-  questionLengthWithTokens: number
+  contextStartIndex: number
 ): Map<number, boolean> {
   const map = new Map<number, boolean>();
   const spanLength = spans[spanIndex].length;
 
   let i = 0;
   while (i < spanLength) {
-    const position = spanIndex * stride + i;
+    const position = spans[spanIndex].startIndex + i;
     let bestScore = -1;
     let bestIndex = -1;
 
@@ -265,7 +247,7 @@ function getMaxContextMap(
       }
     }
 
-    map.set(questionLengthWithTokens + i, bestIndex === spanIndex);
+    map.set(contextStartIndex + i, bestIndex === spanIndex);
     i++;
   }
 
