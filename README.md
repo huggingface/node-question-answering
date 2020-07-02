@@ -11,7 +11,7 @@ It can run models in SavedModel and TFJS formats locally, as well as [remote mod
 ## Installation
 
 ```bash
-npm install question-answering@next
+npm install question-answering@latest
 ```
 
 ## Quickstart

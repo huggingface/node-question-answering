@@ -1,4 +1,4 @@
-# [3.0.0](https://github.com/huggingface/node-question-answering/compare/v2.0.0...v3.0.0) (TBD)
+# [3.0.0](https://github.com/huggingface/node-question-answering/compare/v2.0.0...v3.0.0) (2020-07-02)
 
 This version introduces full support for any DistilBERT/BERT/RoBERTa based models from the [Hugging Face model hub](https://huggingface.co/models). It also simplifies the model instantiation by introducing a single `initModel` factory method (and its equivalent `initTokenizer` if needed).
 
@@ -14,7 +14,7 @@ This version introduces full support for any DistilBERT/BERT/RoBERTa based model
 * Added compatibility with BERT/RoBERTa based models
 * [15 new additional models](./README.md#models) available thanks to the [Hugging Face model hub](https://huggingface.co/models) and the NLP community
 * The model doesn't need to be downloaded through the CLI before running the code for the first time: if it's not present in the default (or specified) model directory, it will be automatically downloaded at runtime during initialization, along with vocabulary / tokenizer files.
-* [🤗Tokenizers](https://github.com/huggingface/tokenizers) now requires version `0.6.2`.
+* [🤗Tokenizers](https://github.com/huggingface/tokenizers) now requires version `0.7.0`.
 
 ### How to migrate
 
