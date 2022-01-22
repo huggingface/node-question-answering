@@ -25,7 +25,7 @@
     "@types/progress": "^2.0.3",
     "@types/shelljs": "^0.8.7",
     "@types/tar": "^4.0.3",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^3.1.1",
     "progress": "^2.0.3",
     "shelljs": "^0.8.3",
     "tar": "^5.0.5",
